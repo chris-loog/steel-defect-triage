@@ -1,11 +1,11 @@
 # Progress
 
-**Current stage:** 2 – Repository setup (in review)
+**Current stage:** 3 – Data (not started)
 **Next step:** Stage 3 – Data (create/obtain hourly demand dataset, explore with pandas). Start in plan mode.
 
 ## Stages
 - [x] 1 – Environment setup
-- [ ] 2 – Repository setup
+- [x] 2 – Repository setup
 - [ ] 3 – Data
 - [ ] 4 – Forecasting
 - [ ] 5 – Python API
@@ -19,7 +19,7 @@
 
 ## Environment (verified)
 Ubuntu 26.04 · .NET SDK 10.0.112 · Python 3.14 (venv ok) · Docker Engine (apt, docker group, no sudo)
-+ Compose v5.5 · gh (logged in as chris-loog) · GitKraken 12.6 · Ollama 0.34 with `qwen3.5`.
++ Compose v5.5 · gh (logged in as chris-loog) · Ollama 0.34 with `qwen3.5`.
 Azure CLI not installed yet – install in Stage 12.
 
 ## Decisions
@@ -27,7 +27,7 @@ Azure CLI not installed yet – install in Stage 12.
 - LLM: local Ollama; exact model chosen in Stage 8 (`qwen3.5` available).
 - GitHub repo `chris-loog/production-forecast-copilot` is **private** until polished.
 - No PostgreSQL for now – CSV data. Add Postgres in Docker later only if useful.
-- GitLens skipped (GitKraken covers it).
+- Git review and commits in VS Code (Source Control view); GitLens not needed.
 
 ## Open issues
 - None.
