@@ -27,7 +27,9 @@ Azure CLI not installed yet – install in Stage 12.
 - LLM: local Ollama; exact model chosen in Stage 8 (`qwen3.5` available).
 - GitHub repo `chris-loog/production-forecast-copilot` is **private** until polished.
 - No PostgreSQL for now – CSV data. Add Postgres in Docker later only if useful.
-- Git review and commits in VS Code (Source Control view); GitLens not needed.
+- IDE: JetBrains Rider (replaces VS Code). User handles git (review, commit, push, PR merge) themselves.
+- Rider plugins: Claude Code [Beta], Azure Toolkit for Rider, .env files support; Docker + Git + Database tools are bundled.
+  Python: check Marketplace for the Python plugin in Rider; otherwise edit `forecasting/` in PyCharm.
 
 ## Open issues
 - None.

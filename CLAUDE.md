@@ -27,9 +27,9 @@ with chart + table → LLM writes a short interpretation of the forecast.
 - From Stage 3 on, remind the user to use plan mode at the start of each stage; no edits until the plan is approved.
 - Boilerplate: write it. Core logic (features, training, HttpClient integration, LLM prompt/interface):
   explain first, implement in small steps, highlight the key lines, sometimes ask a check question.
-- Stage flow: explain → plan → small steps → verify (build/test/curl) → user reviews diff in VS Code →
+- Stage flow: explain → plan → small steps → verify (build/test/curl) → user reviews diff in Rider →
   commit → update `docs/PROGRESS.md` → suggest `/clear`.
-- Git: one branch per stage (`stage-NN-name`), leave changes uncommitted for review, conventional
+- Git: user does all git work in Rider; don't give git how-tos. One branch per stage (`stage-NN-name`), leave changes uncommitted, conventional
   commits (`feat:`, `fix:`, `docs:`, `chore:`, `test:`), PR into `main` at the end of each stage.
 - Teach one Claude Code feature at a time when it becomes useful (1–3 line tip).
 
