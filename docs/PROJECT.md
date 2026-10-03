@@ -88,6 +88,17 @@ python -m venv .venv && .venv/bin/pip install -q -r requirements.txt
 ```
 `forecast` has 24 entries. `units_same_hour_yesterday` is the naive baseline (actual output 24 h earlier).
 
+### .NET app (`backend/ForecastCopilot.Api`, ASP.NET Core MVC)
+```bash
+# Python API must be running on port 8000 (see above)
+dotnet run --project backend/ForecastCopilot.Api   # → http://localhost:5088
+```
+- `GET /` → forecast page (table of the next 24 hours; chart follows in Stage 7).
+- `GET /api/forecast` → same JSON as the Python `/forecast`; `502` ProblemDetails if Python is unreachable.
+- Config: `ForecastApi:BaseUrl` in `appsettings.json` (default `http://localhost:8000`);
+  override with env var `ForecastApi__BaseUrl` (e.g. in Docker).
+- Solution file `ProductionForecastCopilot.slnx` at the repo root (open it in Rider).
+
 ## 7. Stage notes
 ### Stage 3 – Data
 - Decided: simulated production line (no real public hourly production data); target = units produced.
@@ -105,3 +116,10 @@ python -m venv .venv && .venv/bin/pip install -q -r requirements.txt
 - Approach: append 24 empty future hours to the series and reuse `make_features` (lags point into known history),
   so training and serving share one feature function.
 - Model + metrics are loaded once at startup; the CSV is read per request (small, picks up new data).
+
+### Stage 6 – .NET application
+- Built: ASP.NET Core MVC app (.NET 10) with typed HttpClient `ForecastApiClient` registered via `AddHttpClient`
+  (IHttpClientFactory → pooled connections, no socket exhaustion; 10 s timeout).
+- C# records in `Models/ForecastResponse.cs` mirror the Pydantic models; `[JsonPropertyName]` keeps snake_case JSON.
+- Errors: the client turns "service down / timeout / bad JSON" into `ForecastApiUnavailableException`;
+  `/api/forecast` returns 502 ProblemDetails, the page shows a friendly message, details go to the log.
