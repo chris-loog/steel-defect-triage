@@ -1,13 +1,14 @@
 # Progress
 
-**Current stage:** 3 – Data (in progress: domain and data source decided, docs corrected)
-**Next step:** Plan the production-line simulator in plan mode, then build it and the exploration notebook.
+**Current stage:** 3 – Data (done; waiting for commit + PR) → next: 4 – Forecasting
+**Next step:** Stage 4 in plan mode: features (hour, day of week, lag 24h, lag 168h), train RF/GB in `train.py`,
+compare with baseline MAE 40.6 (same hour yesterday; lag 168h = 16.3).
 Python venv (`forecasting/.venv`) and pinned `forecasting/requirements.txt` are set up.
 
 ## Stages
 - [x] 1 – Environment setup
 - [x] 2 – Repository setup
-- [ ] 3 – Data
+- [x] 3 – Data
 - [ ] 4 – Forecasting
 - [ ] 5 – Python API
 - [ ] 6 – .NET application
@@ -35,6 +36,7 @@ Azure CLI not installed yet – install in Stage 12.
 - Domain: **production planning**, not energy. Target = hourly units produced by one production line.
 - Data: simulated production line ("digital twin" simulator), because no public real hourly production data was found.
   UCI steel-plant energy dataset was tried and dropped (energy ≠ production).
+- Simulator: 3 shifts Mon–Fri, Sat early only, 2 years hourly, seed 42 (see PROJECT.md §3).
 - Exploration in a Jupyter notebook (`forecasting/notebooks/`), outputs kept so GitHub shows plots.
 
 ## Open issues
