@@ -1,0 +1,4 @@
+# Local dev: runtime + notebook tools
+-r requirements.txt
+matplotlib==3.11.2
+jupyter==1.1.1

@@ -1,8 +1,7 @@
 # Progress
 
-**Current stage:** 8 – LLM (done; waiting for commit + PR) → next: 9 – Docker
-**Next step:** Stage 9 in plan mode: Dockerfiles for Python API + .NET app, Docker Compose (Ollama stays on the
-host → backend needs `Llm__Ollama__BaseUrl=http://host.docker.internal:11434`).
+**Current stage:** 9 – Docker (done; waiting for commit + PR) → next: 10 – Quality
+**Next step:** Stage 10 in plan mode: tests (pytest for features/API, xUnit for ForecastFacts) + GitHub Actions CI.
 
 ## Stages
 - [x] 1 – Environment setup
@@ -13,7 +12,7 @@ host → backend needs `Llm__Ollama__BaseUrl=http://host.docker.internal:11434`)
 - [x] 6 – .NET application
 - [x] 7 – UI
 - [x] 8 – LLM
-- [ ] 9 – Docker
+- [x] 9 – Docker
 - [ ] 10 – Quality (tests, CI)
 - [ ] 11 – GitHub README
 - [ ] 12 – Azure (optional)
@@ -25,6 +24,10 @@ Azure CLI not installed yet – install in Stage 12.
 
 ## Decisions
 - Docker: apt Docker Engine only (snap removed; Docker Desktop not used).
+- Docker Compose: `forecast-api` + `web`; Ollama stays on the host, bound to docker0 IP `172.17.0.1:11434`
+  (systemd override, not exposed to LAN); containers use `host.docker.internal` (host-gateway).
+  Local dev uses `172.17.0.1` too (`appsettings.Development.json`, `OLLAMA_HOST` in `~/.bashrc`).
+- Python image trains the model at build time; `requirements.txt` = runtime, `requirements-dev.txt` = + notebook.
 - LLM: local Ollama (systemd service) with `qwen3.5`, `think:false`; config section `Llm` / env `Llm__*`.
   C# computes all facts (`ForecastFacts`), LLM only phrases them; summary loaded async via `/Home/Summary`.
 - GitHub repo `chris-loog/production-forecast-copilot` is **private** until polished.
