@@ -1,4 +1,4 @@
-# Local dev: runtime + notebook tools
--r requirements.txt
+# Local dev: runtime + tests + notebook tools
+-r requirements-test.txt
 matplotlib==3.11.2
 jupyter==1.1.1
