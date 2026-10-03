@@ -1,8 +1,8 @@
 # Progress
 
-**Current stage:** 7 – UI (done; waiting for commit + PR) → next: 8 – LLM
-**Next step:** Stage 8 in plan mode: LLM provider interface (default Ollama), prompt from forecast JSON + KPIs
-(`ForecastPageViewModel`), short planner summary on `/`. LLM never produces numbers.
+**Current stage:** 8 – LLM (done; waiting for commit + PR) → next: 9 – Docker
+**Next step:** Stage 9 in plan mode: Dockerfiles for Python API + .NET app, Docker Compose (Ollama stays on the
+host → backend needs `Llm__Ollama__BaseUrl=http://host.docker.internal:11434`).
 
 ## Stages
 - [x] 1 – Environment setup
@@ -12,7 +12,7 @@
 - [x] 5 – Python API
 - [x] 6 – .NET application
 - [x] 7 – UI
-- [ ] 8 – LLM
+- [x] 8 – LLM
 - [ ] 9 – Docker
 - [ ] 10 – Quality (tests, CI)
 - [ ] 11 – GitHub README
@@ -25,7 +25,8 @@ Azure CLI not installed yet – install in Stage 12.
 
 ## Decisions
 - Docker: apt Docker Engine only (snap removed; Docker Desktop not used).
-- LLM: local Ollama; exact model chosen in Stage 8 (`qwen3.5` available).
+- LLM: local Ollama (systemd service) with `qwen3.5`, `think:false`; config section `Llm` / env `Llm__*`.
+  C# computes all facts (`ForecastFacts`), LLM only phrases them; summary loaded async via `/Home/Summary`.
 - GitHub repo `chris-loog/production-forecast-copilot` is **private** until polished.
 - No PostgreSQL for now – CSV data. Add Postgres in Docker later only if useful.
 - IDE: JetBrains Rider (replaces VS Code). User handles git (review, commit, push, PR merge) themselves.
