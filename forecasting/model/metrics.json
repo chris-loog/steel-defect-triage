@@ -1,0 +1,24 @@
+{
+  "data": "simulated production line",
+  "model": "random_forest",
+  "features": [
+    "hour",
+    "dayofweek",
+    "lag_24",
+    "lag_168"
+  ],
+  "train_range": [
+    "2024-10-08 00:00:00",
+    "2026-08-05 22:00:00"
+  ],
+  "test_range": [
+    "2026-08-05 23:00:00",
+    "2026-09-30 23:00:00"
+  ],
+  "mae": {
+    "baseline_same_hour_yesterday": 40.61,
+    "baseline_same_hour_last_week": 16.33,
+    "random_forest": 10.3,
+    "gradient_boosting": 10.49
+  }
+}
