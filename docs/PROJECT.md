@@ -64,9 +64,17 @@ Docker Compose runs both services. Azure deployment is optional.
 - The LLM never produces numbers; it only describes the structured forecast JSON.
 
 ## 6. How to run
+### With Docker (whole app)
+```bash
+docker compose up --build -d   # → http://localhost:5088 (UI), http://localhost:8000/docs (Python API)
+docker compose down
+```
+Needs Ollama on the host bound to the docker0 IP (see "LLM" below). The Python image trains the model at build time.
+
+### Locally (for development)
 ```bash
 cd forecasting
-python -m venv .venv && .venv/bin/pip install -q -r requirements.txt
+python -m venv .venv && .venv/bin/pip install -q -r requirements-dev.txt   # dev = runtime + jupyter/matplotlib
 .venv/bin/python simulate.py   # regenerate data/production_hourly.csv (seed 42)
 .venv/bin/python train.py      # train → model/model.joblib (gitignored) + model/metrics.json
 .venv/bin/uvicorn app:app --reload --port 8000   # API → http://localhost:8000/docs
@@ -102,8 +110,10 @@ dotnet run --project backend/ForecastCopilot.Api   # → http://localhost:5088
   `503 { "error": ... }` if Python or Ollama is unreachable – the rest of the page still works.
 
 ### LLM (local Ollama)
-- Ollama runs as a systemd service on `localhost:11434` (starts at boot; loads the model on first request,
-  unloads after ~5 min idle). Check with `ollama ps` / `systemctl status ollama`. No API key, data stays local.
+- Ollama runs as a systemd service on `172.17.0.1:11434` (docker0 IP, so containers can reach it but not the LAN;
+  set via `sudo systemctl edit ollama` → `OLLAMA_HOST=172.17.0.1:11434`, `After=docker.service`). The `ollama` CLI
+  needs `export OLLAMA_HOST=172.17.0.1:11434` in `~/.bashrc`. Loads the model on first request,
+  unloads after ~5 min idle. Check with `ollama ps` / `systemctl status ollama`. No API key, data stays local.
 - Config section `Llm` in `appsettings.json`: `Provider` (`ollama`), `Ollama:BaseUrl`, `Ollama:Model` (`qwen3.5`);
   override with `Llm__Provider`, `Llm__Ollama__BaseUrl`, `Llm__Ollama__Model` (see `.env.example`).
 
@@ -149,3 +159,12 @@ dotnet run --project backend/ForecastCopilot.Api   # → http://localhost:5088
 - Hour labels use `InvariantCulture` (English day names regardless of OS locale).
 - Async loading: `wwwroot/js/forecast-summary.js` fetches `/Home/Summary` and sets `textContent` (no HTML → no XSS).
 - New provider = new `ILlmClient` class + one case in `Program.cs`.
+
+### Stage 9 – Docker
+- Built: `forecasting/Dockerfile` (python:3.14-slim, trains the model at build time, non-root), multi-stage
+  `backend/ForecastCopilot.Api/Dockerfile` (SDK builds, `aspnet` runtime ships, `USER app`), `compose.yaml`,
+  `.dockerignore` (build context = repo root; keeps `.env`, `.git`, bin/obj out of images).
+- Compose: `web` reaches Python via service name `http://forecast-api:8000`, waits for its `/health` healthcheck;
+  reaches host Ollama via `host.docker.internal` (`extra_hosts: host-gateway`). Config only via `__` env vars.
+- Requirements split: `requirements.txt` (runtime, used by the image) / `requirements-dev.txt` (+ jupyter, matplotlib).
+- Image sizes: web ~360 MB, forecast-api ~765 MB (pandas + scikit-learn + scipy).

@@ -1,0 +1,33 @@
+# Run everything: docker compose up --build   → http://localhost:5088
+# Ollama is NOT in Compose: it runs on the host (systemd), bound to the docker0 IP 172.17.0.1.
+services:
+  forecast-api:
+    build:
+      context: .
+      dockerfile: forecasting/Dockerfile
+    ports:
+      - "8000:8000"   # optional: curl / Swagger (/docs) from the host
+    healthcheck:
+      # slim image has no curl → use Python
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/health')"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+
+  web:
+    build:
+      context: .
+      dockerfile: backend/ForecastCopilot.Api/Dockerfile
+    ports:
+      - "5088:8080"
+    depends_on:
+      forecast-api:
+        condition: service_healthy
+    extra_hosts:
+      # Linux Docker Engine: map host.docker.internal to the host (docker0 gateway, 172.17.0.1)
+      - "host.docker.internal:host-gateway"
+    environment:
+      ForecastApi__BaseUrl: http://forecast-api:8000   # Compose DNS: service name
+      Llm__Provider: ollama
+      Llm__Ollama__BaseUrl: http://host.docker.internal:11434
+      Llm__Ollama__Model: ${LLM_MODEL:-qwen3.5}

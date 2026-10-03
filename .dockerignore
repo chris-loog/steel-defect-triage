@@ -1,0 +1,14 @@
+# Keep the build context small and secrets out of images
+.git
+.idea
+.vscode
+.env
+.env.*
+**/bin
+**/obj
+**/.venv
+**/__pycache__
+**/.ipynb_checkpoints
+forecasting/notebooks
+forecasting/model/*.joblib
+docs
