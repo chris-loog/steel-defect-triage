@@ -1,15 +1,15 @@
 # Progress
 
-**Current stage:** 4 – Forecasting (done; waiting for commit + PR) → next: 5 – Python API
-**Next step:** Stage 5 in plan mode: FastAPI `app.py` loads `model/model.joblib`, reuses `features.make_features`,
-returns next-24h forecast JSON. Run `python train.py` first (model file is gitignored).
+**Current stage:** 5 – Python API (done; waiting for commit + PR) → next: 6 – .NET application
+**Next step:** Stage 6 in plan mode: ASP.NET Core app with typed HttpClient calling `GET /forecast`
+(Python API on port 8000; see PROJECT.md §6 for the JSON contract).
 
 ## Stages
 - [x] 1 – Environment setup
 - [x] 2 – Repository setup
 - [x] 3 – Data
 - [x] 4 – Forecasting
-- [ ] 5 – Python API
+- [x] 5 – Python API
 - [ ] 6 – .NET application
 - [ ] 7 – UI
 - [ ] 8 – LLM
