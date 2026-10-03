@@ -74,7 +74,7 @@ Needs Ollama on the host bound to the docker0 IP (see "LLM" below). The Python i
 ### Locally (for development)
 ```bash
 cd forecasting
-python -m venv .venv && .venv/bin/pip install -q -r requirements-dev.txt   # dev = runtime + jupyter/matplotlib
+python -m venv .venv && .venv/bin/pip install -q -r requirements-dev.txt   # dev = runtime + tests + jupyter/matplotlib
 .venv/bin/python simulate.py   # regenerate data/production_hourly.csv (seed 42)
 .venv/bin/python train.py      # train → model/model.joblib (gitignored) + model/metrics.json
 .venv/bin/uvicorn app:app --reload --port 8000   # API → http://localhost:8000/docs
@@ -116,6 +116,13 @@ dotnet run --project backend/ForecastCopilot.Api   # → http://localhost:5088
   unloads after ~5 min idle. Check with `ollama ps` / `systemctl status ollama`. No API key, data stays local.
 - Config section `Llm` in `appsettings.json`: `Provider` (`ollama`), `Ollama:BaseUrl`, `Ollama:Model` (`qwen3.5`);
   override with `Llm__Provider`, `Llm__Ollama__BaseUrl`, `Llm__Ollama__Model` (see `.env.example`).
+
+### Tests
+```bash
+cd forecasting && .venv/bin/pytest -q          # 9 tests: features + API (needs model.joblib → train.py first)
+dotnet test ProductionForecastCopilot.slnx -v q   # 6 tests: ForecastFacts (repo root)
+```
+CI (`.github/workflows/ci.yml`) runs both on every pull request and on pushes to `main`.
 
 ## 7. Stage notes
 ### Stage 3 – Data
@@ -168,3 +175,13 @@ dotnet run --project backend/ForecastCopilot.Api   # → http://localhost:5088
   reaches host Ollama via `host.docker.internal` (`extra_hosts: host-gateway`). Config only via `__` env vars.
 - Requirements split: `requirements.txt` (runtime, used by the image) / `requirements-dev.txt` (+ jupyter, matplotlib).
 - Image sizes: web ~360 MB, forecast-api ~765 MB (pandas + scikit-learn + scipy).
+
+### Stage 10 – Quality (tests, CI)
+- Python (`forecasting/tests/`, pytest): `test_features.py` checks `make_features` on a tiny synthetic series
+  (value = position, so expected lags are obvious); `test_api.py` calls the API in-process via FastAPI `TestClient`
+  (24 consecutive future hours, no negative output, baseline = actual 24 h earlier, model MAE < baseline MAE).
+- .NET (`backend/ForecastCopilot.Api.Tests/`, xUnit): `ForecastFactsTests` – totals, change % (null when yesterday = 0),
+  peak/lowest producing hour, no-production periods, top-3 drops. No LLM calls in tests (no Ollama needed in CI).
+- Requirements: `requirements.txt` (runtime) ⊂ `requirements-test.txt` (+ pytest, httpx2; used by CI) ⊂ `requirements-dev.txt`.
+- CI: GitHub Actions, two parallel jobs (`python`: install → `train.py` → pytest; `dotnet`: `dotnet test`),
+  read-only token permissions, no secrets.
