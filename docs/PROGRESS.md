@@ -1,7 +1,7 @@
 # Progress
 
-**Current stage:** 9 – Docker (done; waiting for commit + PR) → next: 10 – Quality
-**Next step:** Stage 10 in plan mode: tests (pytest for features/API, xUnit for ForecastFacts) + GitHub Actions CI.
+**Current stage:** 10 – Quality (done; waiting for commit + PR + green CI run) → next: 11 – GitHub README
+**Next step:** Stage 11 in plan mode: polished GitHub README (screenshots, architecture, how to run, CI badge).
 
 ## Stages
 - [x] 1 – Environment setup
@@ -13,7 +13,7 @@
 - [x] 7 – UI
 - [x] 8 – LLM
 - [x] 9 – Docker
-- [ ] 10 – Quality (tests, CI)
+- [x] 10 – Quality (tests, CI)
 - [ ] 11 – GitHub README
 - [ ] 12 – Azure (optional)
 
@@ -43,6 +43,10 @@ Azure CLI not installed yet – install in Stage 12.
 - Model: RandomForest (test MAE 10.3 vs. baseline 40.6/16.3); `model.joblib` gitignored, `metrics.json` committed.
 - Backend: ASP.NET Core **MVC** + `ProductionForecastCopilot.slnx` at repo root; config key `ForecastApi:BaseUrl`.
 - UI: chart data embedded as JSON in the page (not fetched); Chart.js 4.5.1 vendored locally; KPIs computed in C#.
+- Tests: pytest (9: features + API via `TestClient`) and xUnit (6: `ForecastFacts`); no LLM calls in tests.
+  `requirements-test.txt` = runtime + pytest + httpx2 (CI installs this, skips Jupyter).
+- CI: GitHub Actions `ci.yml` on PRs + pushes to `main`; jobs `python` (trains model, then pytest) and `dotnet`.
+- Learning: check questions go to `QUESTIONS.md` (gitignored, local only); user answers them after the project.
 - Exploration in a Jupyter notebook (`forecasting/notebooks/`), outputs kept so GitHub shows plots.
 
 ## Open issues

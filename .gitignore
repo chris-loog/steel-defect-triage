@@ -28,3 +28,6 @@ CLAUDE.md
 
 # Local raw/scratch data (not committed)
 data/raw/
+
+# Personal learning notes (local only)
+QUESTIONS.md
