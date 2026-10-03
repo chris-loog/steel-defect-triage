@@ -5,6 +5,9 @@
 ![Python 3.14](https://img.shields.io/badge/Python-3.14-3776AB)
 ![License: MIT](https://img.shields.io/badge/License-MIT-green)
 
+> **v2 in progress:** pivoting to steel-plate defect triage on real data (UCI Steel Plates Faults, CC BY 4.0, see
+> [`data/steel_plates/README.md`](data/steel_plates/README.md)). The text below describes v1 (git tag `v1`).
+
 Forecasts the next 24 hours of output for a manufacturing line, then has an LLM explain the forecast in
 plain language for a production planner. It's a small end-to-end Data & AI project: Python forecasting,
 an ASP.NET Core web app and a local LLM.
@@ -66,7 +69,8 @@ Most of the remaining error comes from random breakdowns, which by design can't 
 
 ## Quick start
 Requirements: Docker with Compose, and [Ollama](https://ollama.com) on the host with `ollama pull qwen3.5`.
-The Ollama network setup for containers is described in [docs/PROJECT.md](docs/PROJECT.md#llm-local-ollama).
+Containers reach Ollama on the host via `host.docker.internal`, so Ollama must listen on the docker0 IP
+(`OLLAMA_HOST=172.17.0.1:11434`).
 
 ```bash
 docker compose up --build -d
@@ -74,8 +78,9 @@ docker compose up --build -d
 docker compose down
 ```
 
-The Python image trains the model at build time. To run without Docker, see
-[How to run](docs/PROJECT.md#6-how-to-run).
+The Python image trains the model at build time. Without Docker: in `forecasting/` create a venv, install
+`requirements-dev.txt`, run `python train.py` and `uvicorn app:app --port 8000`; then
+`dotnet run --project backend/ForecastCopilot.Api`.
 
 ## Tests & CI
 ```bash
@@ -86,11 +91,10 @@ GitHub Actions runs both on every pull request and on every push to `main`. Test
 
 ## Repository layout
 ```
-data/                        simulated hourly production CSV
+data/                        simulated hourly production CSV (v1), steel_plates/ (v2, real data)
 forecasting/                 simulate.py, features.py, train.py, app.py (FastAPI), tests/, notebooks/
 backend/ForecastCopilot.Api/ ASP.NET Core MVC app: API client, ForecastFacts, LLM client, Chart.js UI
 backend/ForecastCopilot.Api.Tests/  xUnit tests
-docs/PROJECT.md              full documentation: data, model, API, config, stage notes
 compose.yaml                 runs forecast-api + web
 ```
 
