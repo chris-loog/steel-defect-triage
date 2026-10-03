@@ -25,3 +25,6 @@ forecasting/models/*.joblib
 .idea/
 .DS_Store
 CLAUDE.md
+
+# Local raw/scratch data (not committed)
+data/raw/

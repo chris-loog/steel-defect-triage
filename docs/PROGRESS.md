@@ -1,7 +1,8 @@
 # Progress
 
-**Current stage:** 3 – Data (not started)
-**Next step:** Stage 3 – Data (create/obtain hourly demand dataset, explore with pandas). Start in plan mode.
+**Current stage:** 3 – Data (in progress: domain and data source decided, docs corrected)
+**Next step:** Plan the production-line simulator in plan mode, then build it and the exploration notebook.
+Python venv (`forecasting/.venv`) and pinned `forecasting/requirements.txt` are set up.
 
 ## Stages
 - [x] 1 – Environment setup
@@ -30,6 +31,11 @@ Azure CLI not installed yet – install in Stage 12.
 - IDE: JetBrains Rider (replaces VS Code). User handles git (review, commit, push, PR merge) themselves.
 - Rider plugins: Claude Code [Beta], Azure Toolkit for Rider, .env files support; Docker + Git + Database tools are bundled.
   Python: check Marketplace for the Python plugin in Rider; otherwise edit `forecasting/` in PyCharm.
+
+- Domain: **production planning**, not energy. Target = hourly units produced by one production line.
+- Data: simulated production line ("digital twin" simulator), because no public real hourly production data was found.
+  UCI steel-plant energy dataset was tried and dropped (energy ≠ production).
+- Exploration in a Jupyter notebook (`forecasting/notebooks/`), outputs kept so GitHub shows plots.
 
 ## Open issues
 - None.
