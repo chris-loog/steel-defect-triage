@@ -1,33 +1,38 @@
-"""Unit tests for make_features (feature engineering shared by train.py and app.py)."""
+"""Unit tests for load_steel_data (data loading shared by train.py and app.py)."""
 import pandas as pd
+import pytest
 
-from features import FEATURES, make_features
-
-
-def hourly_series(hours: int = 200) -> pd.Series:
-    # Value = position (0, 1, 2, ...), so the expected lag value is simply "position - lag".
-    index = pd.date_range("2024-10-07 00:00", periods=hours, freq="h")  # 2024-10-07 is a Monday
-    return pd.Series(range(hours), index=index, dtype=float)
+from features import ALL_FEATURES, CLASSES, DATA_DIR, FEATURES, POSITION_FEATURES, load_steel_data
 
 
-def test_columns_match_feature_list():
-    assert list(make_features(hourly_series()).columns) == FEATURES
+@pytest.fixture(scope="module")
+def data() -> tuple[pd.DataFrame, pd.Series]:
+    return load_steel_data()
 
 
-def test_hour_and_dayofweek():
-    df = make_features(hourly_series())
-    assert df["hour"].iloc[0] == 0 and df["hour"].iloc[13] == 13
-    assert df["dayofweek"].iloc[0] == 0   # Monday
-    assert df["dayofweek"].iloc[24] == 1  # Tuesday
+def test_shape_and_no_missing_values(data):
+    X, y = data
+    assert X.shape == (1941, len(ALL_FEATURES)) and len(y) == 1941
+    assert not X.isna().any().any()
 
 
-def test_lag_24_is_same_hour_yesterday():
-    df = make_features(hourly_series())
-    assert df["lag_24"].iloc[:24].isna().all()  # no history yet
-    assert df["lag_24"].iloc[30] == 30 - 24
+def test_redundant_and_position_features_not_used():
+    assert "TypeOfSteel_A400" not in ALL_FEATURES
+    assert not set(POSITION_FEATURES) & set(FEATURES)
+    assert set(FEATURES) <= set(ALL_FEATURES)
 
 
-def test_lag_168_is_same_hour_last_week():
-    df = make_features(hourly_series())
-    assert df["lag_168"].iloc[:168].isna().all()
-    assert df["lag_168"].iloc[190] == 190 - 168
+def test_label_matches_one_hot_column(data):
+    _, y = data
+    raw = pd.read_csv(DATA_DIR / "Faults.NNA", sep="\t", header=None)
+    one_hot = raw.iloc[:, -7:].to_numpy()
+    for i in [0, 500, 1940]:
+        assert one_hot[i, CLASSES.index(y[i])] == 1
+
+
+def test_class_counts_match_data_readme(data):
+    _, y = data
+    assert y.value_counts().to_dict() == {
+        "Other_Faults": 673, "Bumps": 402, "K_Scatch": 391, "Z_Scratch": 190,
+        "Pastry": 158, "Stains": 72, "Dirtiness": 55,
+    }
