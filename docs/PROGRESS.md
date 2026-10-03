@@ -1,15 +1,14 @@
 # Progress
 
-**Current stage:** 3 – Data (done; waiting for commit + PR) → next: 4 – Forecasting
-**Next step:** Stage 4 in plan mode: features (hour, day of week, lag 24h, lag 168h), train RF/GB in `train.py`,
-compare with baseline MAE 40.6 (same hour yesterday; lag 168h = 16.3).
-Python venv (`forecasting/.venv`) and pinned `forecasting/requirements.txt` are set up.
+**Current stage:** 4 – Forecasting (done; waiting for commit + PR) → next: 5 – Python API
+**Next step:** Stage 5 in plan mode: FastAPI `app.py` loads `model/model.joblib`, reuses `features.make_features`,
+returns next-24h forecast JSON. Run `python train.py` first (model file is gitignored).
 
 ## Stages
 - [x] 1 – Environment setup
 - [x] 2 – Repository setup
 - [x] 3 – Data
-- [ ] 4 – Forecasting
+- [x] 4 – Forecasting
 - [ ] 5 – Python API
 - [ ] 6 – .NET application
 - [ ] 7 – UI
@@ -37,6 +36,7 @@ Azure CLI not installed yet – install in Stage 12.
 - Data: simulated production line ("digital twin" simulator), because no public real hourly production data was found.
   UCI steel-plant energy dataset was tried and dropped (energy ≠ production).
 - Simulator: 3 shifts Mon–Fri, Sat early only, 2 years hourly, seed 42 (see PROJECT.md §3).
+- Model: RandomForest (test MAE 10.3 vs. baseline 40.6/16.3); `model.joblib` gitignored, `metrics.json` committed.
 - Exploration in a Jupyter notebook (`forecasting/notebooks/`), outputs kept so GitHub shows plots.
 
 ## Open issues
