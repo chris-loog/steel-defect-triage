@@ -1,0 +1,42 @@
+@model ForecastPageViewModel
+@{
+    ViewData["Title"] = "Production forecast";
+}
+
+<h1 class="h3">Production forecast – next 24 hours</h1>
+<p class="text-muted">Data source: simulated production line (digital-twin simulator, not real plant data).</p>
+
+@if (Model.Error is not null)
+{
+    <div class="alert alert-warning">@Model.Error</div>
+}
+else if (Model.Forecast is { } f)
+{
+    <ul class="list-unstyled">
+        <li>Last actual hour: <strong>@f.LastActualTimestamp.ToString("ddd yyyy-MM-dd HH:mm")</strong></li>
+        <li>Model: @f.Model · MAE @f.Mae.Model.ToString("0.0") units/h
+            (baseline "same hour yesterday": @f.Mae.BaselineSameHourYesterday.ToString("0.0"))</li>
+    </ul>
+
+    <table class="table table-sm table-striped w-auto">
+        <thead>
+        <tr>
+            <th>Hour</th>
+            <th class="text-end">Forecast (units)</th>
+            <th class="text-end">Same hour yesterday</th>
+            <th class="text-end">Change</th>
+        </tr>
+        </thead>
+        <tbody>
+        @foreach (var p in f.Forecast)
+        {
+            <tr>
+                <td>@p.Timestamp.ToString("ddd HH:mm")</td>
+                <td class="text-end">@p.UnitsPredicted</td>
+                <td class="text-end">@p.UnitsSameHourYesterday</td>
+                <td class="text-end">@((p.UnitsPredicted - p.UnitsSameHourYesterday).ToString("+0;-0;0"))</td>
+            </tr>
+        }
+        </tbody>
+    </table>
+}
