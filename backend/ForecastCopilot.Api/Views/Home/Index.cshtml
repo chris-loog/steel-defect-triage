@@ -1,151 +1,137 @@
-@model ForecastPageViewModel
+@using System.Globalization
+@model TriagePageViewModel
 @{
-    ViewData["Title"] = "Production forecast";
+    ViewData["Title"] = $"Batch {Model.Seed}";
+    var inv = CultureInfo.InvariantCulture;
+
+    // Triage strip axis: confidence 0.30 ... 1.00 in columns of 0.025, so every slider step (0.05) is a column edge.
+    const double axisMin = 0.30, binWidth = 0.025;
+    const int binCount = 28;
+    string Pct(double confidence) => ((confidence - axisMin) / (1 - axisMin) * 100).ToString("0.###", inv);
+    int Bin(double confidence) => Math.Clamp((int)Math.Floor((confidence - axisMin) / binWidth + 1e-9), 0, binCount - 1);
 }
 
-<div class="d-flex flex-wrap align-items-end justify-content-between gap-2 mb-4">
-    <div>
-        <h1 class="h3 mb-1">Production forecast · next 24 hours</h1>
-        <p class="text-muted mb-0">
-            <span class="badge text-bg-warning me-1">Simulated data</span>
-            Digital-twin production line simulator, not real plant data.
-        </p>
+@section HeaderActions {
+    <div class="header-actions">
+        <span class="batch-id">Batch @Model.Seed</span>
+        <a class="btn-steel" asp-action="Index" asp-route-seed="">New batch</a>
     </div>
-    @if (Model.Forecast is { } header)
-    {
-        <div class="text-muted small text-md-end">
-            Last actual hour<br/>
-            <strong class="text-body">@header.LastActualTimestamp.ToString("ddd yyyy-MM-dd HH:mm")</strong>
-        </div>
-    }
-</div>
+}
 
 @if (Model.Error is not null)
 {
-    <div class="card border-warning shadow-sm">
-        <div class="card-body">
-            <h2 class="h5 card-title">Forecast unavailable</h2>
-            <p class="card-text mb-0">@Model.Error</p>
-        </div>
-    </div>
+    <section class="panel panel-error" role="alert">
+        <h1 class="section-title">This batch can't be loaded</h1>
+        <p class="mb-0">@Model.Error</p>
+    </section>
 }
-else if (Model.Forecast is { } f)
+else if (Model.Facts is { } facts && Model.Batch is { } batch)
 {
-    var peak = Model.PeakPoint!;
-    var change = Model.ChangePercent;
+    var columns = batch.GroupBy(d => Bin(d.Confidence)).ToDictionary(g => g.Key, g => g.OrderBy(d => d.Confidence).ToList());
+    var thresholdText = facts.Threshold.ToString("0.00", inv);
 
-    <div class="row g-3 mb-4">
-        <div class="col-6 col-lg-3">
-            <div class="card kpi-card h-100">
-                <div class="card-body">
-                    <div class="kpi-label">Units next 24 h</div>
-                    <div class="kpi-value">@Model.TotalPredicted.ToString("N0")</div>
-                    <div class="kpi-sub">previous 24 h: @Model.TotalSameHourYesterday.ToString("N0")</div>
-                </div>
-            </div>
-        </div>
-        <div class="col-6 col-lg-3">
-            <div class="card kpi-card h-100">
-                <div class="card-body">
-                    <div class="kpi-label">Change vs. previous 24 h</div>
-                    @if (change is null)
-                    {
-                        <div class="kpi-value text-muted">n/a</div>
-                        <div class="kpi-sub">no output yesterday</div>
-                    }
-                    else
-                    {
-                        <div class="kpi-value @(change >= 0 ? "text-success" : "text-danger")">
-                            @(change >= 0 ? "▲" : "▼") @change.Value.ToString("+0.0;-0.0;0.0")&nbsp;%
-                        </div>
-                        <div class="kpi-sub">same hours yesterday</div>
-                    }
-                </div>
-            </div>
-        </div>
-        <div class="col-6 col-lg-3">
-            <div class="card kpi-card h-100">
-                <div class="card-body">
-                    <div class="kpi-label">Peak hour</div>
-                    <div class="kpi-value">@peak.Timestamp.ToString("ddd HH:mm")</div>
-                    <div class="kpi-sub">@peak.UnitsPredicted units forecast</div>
-                </div>
-            </div>
-        </div>
-        <div class="col-6 col-lg-3">
-            <div class="card kpi-card h-100">
-                <div class="card-body">
-                    <div class="kpi-label">Model error (MAE)</div>
-                    <div class="kpi-value">@f.Mae.Model.ToString("0.0") <span class="kpi-unit">units/h</span></div>
-                    <div class="kpi-sub">baseline: @f.Mae.BaselineSameHourYesterday.ToString("0.0") · @f.Model</div>
-                </div>
-            </div>
-        </div>
-    </div>
+    <section class="triage" aria-labelledby="triage-headline">
+        <h1 id="triage-headline" class="triage-headline">
+            <span class="marker"><span id="n-manual">@facts.ManualReview</span> of @facts.BatchSize defects</span> need your review.
+        </h1>
+        <p class="triage-lede">
+            At threshold <strong id="threshold-value">@thresholdText</strong> the other <strong id="n-auto">@facts.AutoClassified</strong>
+            are classified automatically. On the held-out test set,
+            <strong id="error-rate">@(facts.ExpectedErrorRate is { } e ? e.ToString("0.0 %", inv) : "n/a")</strong>
+            of automatically classified defects had the wrong fault type.
+        </p>
 
-    <div class="card shadow-sm mb-4">
-        <div class="card-header bg-body d-flex justify-content-between align-items-center">
-            <h2 class="h6 mb-0">Planner summary</h2>
-            <span class="small text-muted">AI-generated from simulated data · numbers computed by the app</span>
-        </div>
-        <div class="card-body">
-            <p id="forecast-summary" class="card-text mb-0 text-muted" aria-live="polite">
-                <span class="spinner-border spinner-border-sm me-2" role="status"></span>Generating summary…
-            </p>
-        </div>
-    </div>
-
-    <div class="card shadow-sm mb-4">
-        <div class="card-header bg-body">
-            <h2 class="h6 mb-0">Hourly output forecast</h2>
-        </div>
-        <div class="card-body">
-            <div class="chart-container">
-                <canvas id="forecast-chart" aria-label="Line chart of forecast units per hour vs. same hour yesterday" role="img"></canvas>
-            </div>
-        </div>
-    </div>
-
-    <div class="card shadow-sm">
-        <div class="card-header bg-body">
-            <h2 class="h6 mb-0">Hourly detail</h2>
-        </div>
-        <div class="table-responsive table-scroll">
-            <table class="table table-sm table-hover align-middle mb-0">
-                <thead class="sticky-top">
-                <tr>
-                    <th>Hour</th>
-                    <th class="text-end">Forecast (units)</th>
-                    <th class="text-end">Same hour yesterday</th>
-                    <th class="text-end">Change</th>
-                </tr>
-                </thead>
-                <tbody>
-                @foreach (var p in f.Forecast)
+        <div class="strip" style="--threshold: @Pct(facts.Threshold)%">
+            <div class="strip-plot" role="img"
+                 aria-label="Each dot is one defect, placed by model confidence. Dots left of the threshold line go to manual review.">
+                <div class="manual-zone"></div>
+                @for (var b = 0; b < binCount; b++)
                 {
-                    var diff = p.UnitsPredicted - p.UnitsSameHourYesterday;
-                    <tr>
-                        <td>@p.Timestamp.ToString("ddd HH:mm")</td>
-                        <td class="text-end fw-semibold">@p.UnitsPredicted</td>
-                        <td class="text-end text-muted">@p.UnitsSameHourYesterday</td>
-                        <td class="text-end @(diff > 0 ? "text-success" : diff < 0 ? "text-danger" : "text-muted")">
-                            @diff.ToString("+0;-0;0")
-                        </td>
-                    </tr>
+                    <div class="strip-column">
+                        @if (columns.TryGetValue(b, out var dots))
+                        {
+                            foreach (var d in dots)
+                            {
+                                <span class="dot @(d.Confidence >= facts.Threshold ? "is-auto" : "is-manual") @(d.IsCorrect ? "" : "is-wrong")"
+                                      data-confidence="@d.Confidence.ToString("R", inv)"
+                                      title="Row @d.Row: @d.PredictedFault, confidence @d.Confidence.ToString("0.00", inv)@(d.IsCorrect ? "" : $", actually {d.TrueFault}")"></span>
+                            }
+                        }
+                    </div>
                 }
-                </tbody>
-            </table>
+                <div class="threshold-line" aria-hidden="true"></div>
+            </div>
+            <label for="threshold" class="visually-hidden">Confidence threshold</label>
+            <input type="range" id="threshold" class="strip-slider" min="0.30" max="0.95" step="0.05" value="@thresholdText">
+            <div class="strip-axis" aria-hidden="true">
+                @for (var t = 3; t <= 10; t++)
+                {
+                    <span style="left: @Pct(t / 10.0)%">@((t / 10.0).ToString("0.0", inv))</span>
+                }
+            </div>
         </div>
+
+        <ul class="strip-legend">
+            <li><span class="dot is-manual"></span>Manual review: confidence below the threshold</li>
+            <li><span class="dot is-auto"></span>Classified automatically</li>
+            <li><span class="dot is-auto is-wrong"></span>Wrong prediction (known because this is test data)</li>
+        </ul>
+    </section>
+
+    <div class="row g-4">
+        <section class="col-lg-5">
+            <div class="panel h-100">
+                <h2 class="section-title">Fault mix</h2>
+                <p class="panel-note">Predicted fault types in this batch, split by where they go.</p>
+                <div class="chart-container">
+                    <canvas id="fault-mix-chart" role="img"
+                            aria-label="Bar chart of predicted fault types in this batch, split into manual review and automatic"></canvas>
+                </div>
+            </div>
+        </section>
+        <section class="col-lg-7">
+            <div class="panel h-100">
+                <h2 class="section-title">Defects, least confident first</h2>
+                <p class="panel-note">The true fault is known only because this demo batch comes from the test set.</p>
+                <div class="table-scroll">
+                    <table class="defect-table">
+                        <thead>
+                        <tr>
+                            <th scope="col">Row</th>
+                            <th scope="col">Predicted fault</th>
+                            <th scope="col" class="num">Confidence</th>
+                            <th scope="col">Goes to</th>
+                            <th scope="col">True fault</th>
+                        </tr>
+                        </thead>
+                        <tbody>
+                        @foreach (var d in batch.OrderBy(d => d.Confidence))
+                        {
+                            var auto = d.Confidence >= facts.Threshold;
+                            <tr class="@(auto ? "is-auto" : "is-manual")"
+                                data-confidence="@d.Confidence.ToString("R", inv)" data-fault="@d.PredictedFault">
+                                <td class="muted">@d.Row</td>
+                                <td>@d.PredictedFault</td>
+                                <td class="num">@d.Confidence.ToString("0.00", inv)</td>
+                                <td class="triage-status">@(auto ? "Automatic" : "Manual review")</td>
+                                <td class="@(d.IsCorrect ? "muted" : "wrong")">@(d.IsCorrect ? "✓" : "✗") @d.TrueFault</td>
+                            </tr>
+                        }
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </section>
     </div>
 }
 
 @section Scripts {
-    @if (Model.Forecast is { } data)
+    @if (Model.Facts is { } data)
     {
-        @* Data only (type=application/json is never executed); forecast-chart.js reads it with JSON.parse. *@
-        <script id="forecast-data" type="application/json">@Json.Serialize(data.Forecast)</script>
+        @* Data only (type=application/json is never executed); triage.js reads it with JSON.parse. *@
+        <script id="fault-mix-data" type="application/json">@Json.Serialize(data.FaultMix)</script>
+        <script id="threshold-stats-data" type="application/json">@Json.Serialize(Model.ThresholdStats)</script>
         <script src="~/lib/chart.js/dist/chart.umd.min.js"></script>
-        <script src="~/js/forecast-chart.js" asp-append-version="true"></script>
-        <script src="~/js/forecast-summary.js" asp-append-version="true"></script>
+        <script src="~/js/triage.js" asp-append-version="true"></script>
     }
 }
