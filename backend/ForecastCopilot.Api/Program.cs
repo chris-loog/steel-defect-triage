@@ -28,6 +28,7 @@ builder.Services.AddHttpClient<ILlmClient, OllamaLlmClient>(http => new OllamaLl
         client.BaseAddress = new Uri(ollamaUrl);
         client.Timeout = TimeSpan.FromSeconds(60); // local models are slow, especially on first load
     });
+builder.Services.AddScoped<TriageSummaryService>();
 
 var app = builder.Build();
 

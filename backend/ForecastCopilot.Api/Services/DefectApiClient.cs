@@ -15,6 +15,10 @@ public class DefectApiClient(HttpClient http)
     public Task<IReadOnlyList<ThresholdStat>> GetThresholdStatsAsync(CancellationToken ct = default) =>
         GetAsync<IReadOnlyList<ThresholdStat>>("/threshold-stats", ct);
 
+    // Training metrics (metrics.json); only the per-class test results are mapped.
+    public Task<ModelInfo> GetModelInfoAsync(CancellationToken ct = default) =>
+        GetAsync<ModelInfo>("/model-info", ct);
+
     private async Task<T> GetAsync<T>(string path, CancellationToken ct)
     {
         try
