@@ -31,3 +31,6 @@ data/raw/
 
 # Personal learning notes (local only)
 QUESTIONS.md
+
+# Local working docs (only README.md is committed)
+docs/
