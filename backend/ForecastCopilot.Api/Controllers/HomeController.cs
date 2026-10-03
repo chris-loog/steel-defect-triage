@@ -5,37 +5,29 @@ using ForecastCopilot.Api.Services;
 
 namespace ForecastCopilot.Api.Controllers;
 
-public class HomeController(ForecastApiClient forecastApi, ILogger<HomeController> logger) : Controller
+public class HomeController(DefectApiClient defectApi, ILogger<HomeController> logger) : Controller
 {
-    public async Task<IActionResult> Index(CancellationToken ct)
-    {
-        try
-        {
-            var forecast = await forecastApi.GetForecastAsync(ct);
-            return View(new ForecastPageViewModel(forecast, null));
-        }
-        catch (ForecastApiUnavailableException ex)
-        {
-            logger.LogError(ex, "Forecast API call failed");
-            return View(new ForecastPageViewModel(null,
-                "The forecasting service is not reachable right now. Start the Python API and reload the page."));
-        }
-    }
+    private const int BatchSize = 50;
 
-    // Called by wwwroot/js/forecast-summary.js after the page has rendered (the LLM can take several seconds).
-    public async Task<IActionResult> Summary([FromServices] ForecastSummaryService summaries, CancellationToken ct)
+    public async Task<IActionResult> Index(int? seed, CancellationToken ct)
     {
+        // No seed -> pick one and redirect, so every batch has a URL that can be reloaded or shared.
+        if (seed is null)
+            return RedirectToAction(nameof(Index), new { seed = Random.Shared.Next(1, 100_000) });
+
         try
         {
-            var forecast = await forecastApi.GetForecastAsync(ct);
-            var summary = await summaries.SummarizeAsync(ForecastFacts.From(forecast), ct);
-            return Json(new { summary });
+            // Both calls are independent -> start both, then await them together.
+            var batchTask = defectApi.GetBatchAsync(BatchSize, seed.Value, ct);
+            var statsTask = defectApi.GetThresholdStatsAsync(ct);
+            await Task.WhenAll(batchTask, statsTask);
+            return View(new TriagePageViewModel(seed.Value, batchTask.Result, statsTask.Result, null));
         }
-        catch (Exception ex) when (ex is ForecastApiUnavailableException or LlmUnavailableException)
+        catch (DefectApiUnavailableException ex)
         {
-            logger.LogError(ex, "Planner summary failed");
-            return StatusCode(StatusCodes.Status503ServiceUnavailable,
-                new { error = "The AI summary is not available right now (is Ollama running?)." });
+            logger.LogError(ex, "Defect API call failed");
+            return View(new TriagePageViewModel(seed.Value, null, null,
+                "The defect classifier service is not reachable right now. Start the Python API and reload the page."));
         }
     }
 

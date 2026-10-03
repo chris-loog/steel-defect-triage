@@ -1,37 +1,32 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>@ViewData["Title"] · Production Forecast Copilot</title>
-    <script type="importmap"></script>
+    <title>@ViewData["Title"] – Steel Defect Triage</title>
+    <link rel="preload" href="~/fonts/barlow-400.woff2" as="font" type="font/woff2" crossorigin />
+    <link rel="preload" href="~/fonts/barlow-condensed-600.woff2" as="font" type="font/woff2" crossorigin />
     <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.min.css" />
     <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
-    <link rel="stylesheet" href="~/ForecastCopilot.Api.styles.css" asp-append-version="true" />
 </head>
 <body>
-    <header>
-        <nav class="navbar navbar-dark bg-dark mb-4">
-            <div class="container">
-                <a class="navbar-brand fw-semibold" asp-area="" asp-controller="Home" asp-action="Index">Production Forecast Copilot</a>
-                <span class="navbar-text small">Production planning · line output forecast</span>
-            </div>
-        </nav>
+    <header class="site-header">
+        <div class="container site-header-inner">
+            <a class="brand" asp-controller="Home" asp-action="Index" asp-route-seed="">Steel Defect Triage</a>
+            @await RenderSectionAsync("HeaderActions", required: false)
+        </div>
     </header>
-    <div class="container">
-        <main role="main" class="pb-3">
-            @RenderBody()
-        </main>
-    </div>
 
-    <footer class="border-top footer text-muted small">
+    <main class="container site-main">
+        @RenderBody()
+    </main>
+
+    <footer class="site-footer">
         <div class="container">
-            &copy; 2026 - Production Forecast Copilot · data: simulated production line
+            Data: <a href="https://doi.org/10.24432/C5J88N">UCI Steel Plates Faults</a> by Buscema, Terzi and Tastle (2010),
+            licensed CC BY 4.0. Fonts: Barlow, SIL Open Font License.
         </div>
     </footer>
-    <script src="~/lib/jquery/dist/jquery.min.js"></script>
-    <script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
-    <script src="~/js/site.js" asp-append-version="true"></script>
     @await RenderSectionAsync("Scripts", required: false)
 </body>
 </html>

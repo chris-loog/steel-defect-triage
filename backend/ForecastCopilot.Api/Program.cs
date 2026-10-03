@@ -5,16 +5,14 @@ var builder = WebApplication.CreateBuilder(args);
 // Add services to the container.
 builder.Services.AddControllersWithViews();
 
-// Typed HttpClient for the Python forecasting service; IHttpClientFactory manages the connections.
+// Typed HttpClient for the Python defect classifier service; IHttpClientFactory manages the connections.
 var forecastApiUrl = builder.Configuration["ForecastApi:BaseUrl"]
     ?? throw new InvalidOperationException("Missing config ForecastApi:BaseUrl.");
-builder.Services.AddHttpClient<ForecastApiClient>(client =>
+builder.Services.AddHttpClient<DefectApiClient>(client =>
 {
     client.BaseAddress = new Uri(forecastApiUrl);
     client.Timeout = TimeSpan.FromSeconds(10);
 });
-
-builder.Services.AddScoped<ForecastSummaryService>();
 
 // LLM provider behind ILlmClient. Only "ollama" for now; another provider = one more class + one more case here.
 var llmProvider = builder.Configuration["Llm:Provider"] ?? "ollama";
