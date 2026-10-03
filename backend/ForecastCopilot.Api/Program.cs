@@ -14,6 +14,23 @@ builder.Services.AddHttpClient<ForecastApiClient>(client =>
     client.Timeout = TimeSpan.FromSeconds(10);
 });
 
+builder.Services.AddScoped<ForecastSummaryService>();
+
+// LLM provider behind ILlmClient. Only "ollama" for now; another provider = one more class + one more case here.
+var llmProvider = builder.Configuration["Llm:Provider"] ?? "ollama";
+if (llmProvider != "ollama")
+    throw new InvalidOperationException($"Unknown Llm:Provider '{llmProvider}'. Supported: ollama.");
+var ollamaUrl = builder.Configuration["Llm:Ollama:BaseUrl"]
+    ?? throw new InvalidOperationException("Missing config Llm:Ollama:BaseUrl.");
+var ollamaModel = builder.Configuration["Llm:Ollama:Model"]
+    ?? throw new InvalidOperationException("Missing config Llm:Ollama:Model.");
+builder.Services.AddHttpClient<ILlmClient, OllamaLlmClient>(http => new OllamaLlmClient(http, ollamaModel))
+    .ConfigureHttpClient(client =>
+    {
+        client.BaseAddress = new Uri(ollamaUrl);
+        client.Timeout = TimeSpan.FromSeconds(60); // local models are slow, especially on first load
+    });
+
 var app = builder.Build();
 
 // Configure the HTTP request pipeline.

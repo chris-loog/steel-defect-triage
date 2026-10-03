@@ -84,6 +84,18 @@ else if (Model.Forecast is { } f)
     </div>
 
     <div class="card shadow-sm mb-4">
+        <div class="card-header bg-body d-flex justify-content-between align-items-center">
+            <h2 class="h6 mb-0">Planner summary</h2>
+            <span class="small text-muted">AI-generated from simulated data · numbers computed by the app</span>
+        </div>
+        <div class="card-body">
+            <p id="forecast-summary" class="card-text mb-0 text-muted" aria-live="polite">
+                <span class="spinner-border spinner-border-sm me-2" role="status"></span>Generating summary…
+            </p>
+        </div>
+    </div>
+
+    <div class="card shadow-sm mb-4">
         <div class="card-header bg-body">
             <h2 class="h6 mb-0">Hourly output forecast</h2>
         </div>
@@ -134,5 +146,6 @@ else if (Model.Forecast is { } f)
         <script id="forecast-data" type="application/json">@Json.Serialize(data.Forecast)</script>
         <script src="~/lib/chart.js/dist/chart.umd.min.js"></script>
         <script src="~/js/forecast-chart.js" asp-append-version="true"></script>
+        <script src="~/js/forecast-summary.js" asp-append-version="true"></script>
     }
 }

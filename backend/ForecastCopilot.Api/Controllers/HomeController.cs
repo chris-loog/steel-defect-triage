@@ -22,6 +22,23 @@ public class HomeController(ForecastApiClient forecastApi, ILogger<HomeControlle
         }
     }
 
+    // Called by wwwroot/js/forecast-summary.js after the page has rendered (the LLM can take several seconds).
+    public async Task<IActionResult> Summary([FromServices] ForecastSummaryService summaries, CancellationToken ct)
+    {
+        try
+        {
+            var forecast = await forecastApi.GetForecastAsync(ct);
+            var summary = await summaries.SummarizeAsync(ForecastFacts.From(forecast), ct);
+            return Json(new { summary });
+        }
+        catch (Exception ex) when (ex is ForecastApiUnavailableException or LlmUnavailableException)
+        {
+            logger.LogError(ex, "Planner summary failed");
+            return StatusCode(StatusCodes.Status503ServiceUnavailable,
+                new { error = "The AI summary is not available right now (is Ollama running?)." });
+        }
+    }
+
     [ResponseCache(Duration = 0, Location = ResponseCacheLocation.None, NoStore = true)]
     public IActionResult Error()
     {

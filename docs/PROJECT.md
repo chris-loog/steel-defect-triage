@@ -98,6 +98,14 @@ dotnet run --project backend/ForecastCopilot.Api   # → http://localhost:5088
 - Config: `ForecastApi:BaseUrl` in `appsettings.json` (default `http://localhost:8000`);
   override with env var `ForecastApi__BaseUrl` (e.g. in Docker).
 - Solution file `ProductionForecastCopilot.slnx` at the repo root (open it in Rider).
+- `GET /Home/Summary` → `{ "summary": "..." }` LLM planner summary (fetched by the page after render);
+  `503 { "error": ... }` if Python or Ollama is unreachable – the rest of the page still works.
+
+### LLM (local Ollama)
+- Ollama runs as a systemd service on `localhost:11434` (starts at boot; loads the model on first request,
+  unloads after ~5 min idle). Check with `ollama ps` / `systemctl status ollama`. No API key, data stays local.
+- Config section `Llm` in `appsettings.json`: `Provider` (`ollama`), `Ollama:BaseUrl`, `Ollama:Model` (`qwen3.5`);
+  override with `Llm__Provider`, `Llm__Ollama__BaseUrl`, `Llm__Ollama__Model` (see `.env.example`).
 
 ## 7. Stage notes
 ### Stage 3 – Data
@@ -131,3 +139,13 @@ dotnet run --project backend/ForecastCopilot.Api   # → http://localhost:5088
 - Chart data: Razor embeds the forecast as `<script type="application/json">` (one Python call per page load);
   `wwwroot/js/forecast-chart.js` reads it with `JSON.parse` (no inline JS).
 - Chart.js 4.5.1 vendored in `wwwroot/lib/chart.js/` (works offline / in Docker, like Bootstrap).
+
+### Stage 8 – LLM
+- Flow: `ForecastFacts.From(forecast)` (C#) → facts JSON → `ForecastSummaryService` (prompt) → `ILlmClient`
+  → `OllamaLlmClient` (`POST /api/chat`, `stream:false`, `think:false`, temperature 0.2, timeout 60 s).
+- The LLM never computes numbers: `ForecastFacts` precomputes totals, change %, peak / lowest producing hour,
+  no-production periods, top 3 drops vs. yesterday (incl. differences) and MAE; the prompt allows only numbers
+  that appear literally in the JSON. KPI cards read the same `ForecastFacts`, so UI and summary always match.
+- Hour labels use `InvariantCulture` (English day names regardless of OS locale).
+- Async loading: `wwwroot/js/forecast-summary.js` fetches `/Home/Summary` and sets `textContent` (no HTML → no XSS).
+- New provider = new `ILlmClient` class + one case in `Program.cs`.
