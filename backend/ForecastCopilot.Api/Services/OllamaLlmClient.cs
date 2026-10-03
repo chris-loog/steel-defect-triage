@@ -7,14 +7,16 @@ namespace ForecastCopilot.Api.Services;
 // BaseAddress and Timeout are configured in Program.cs; the model name comes from config Llm:Ollama:Model.
 public class OllamaLlmClient(HttpClient http, string model) : ILlmClient
 {
-    public async Task<string> CompleteAsync(string systemPrompt, string userMessage, CancellationToken ct = default)
+    public async Task<string> CompleteAsync(
+        string systemPrompt, string userMessage, JsonElement? responseSchema = null, CancellationToken ct = default)
     {
         var request = new ChatRequest(
             model,
             [new ChatMessage("system", systemPrompt), new ChatMessage("user", userMessage)],
             Stream: false,                         // one JSON response instead of a token stream
             Think: false,                          // skip the model's hidden reasoning → much faster
-            new ChatOptions(Temperature: 0.2));    // low temperature → factual, repeatable wording
+            new ChatOptions(Temperature: 0.2),     // low temperature → factual, repeatable wording
+            Format: responseSchema);               // Ollama constrains the output to this JSON Schema
 
         try
         {
@@ -38,7 +40,9 @@ public class OllamaLlmClient(HttpClient http, string model) : ILlmClient
         [property: JsonPropertyName("messages")] IReadOnlyList<ChatMessage> Messages,
         [property: JsonPropertyName("stream")] bool Stream,
         [property: JsonPropertyName("think")] bool Think,
-        [property: JsonPropertyName("options")] ChatOptions Options);
+        [property: JsonPropertyName("options")] ChatOptions Options,
+        [property: JsonPropertyName("format"), JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+        JsonElement? Format);
 
     private record ChatOptions([property: JsonPropertyName("temperature")] double Temperature);
 

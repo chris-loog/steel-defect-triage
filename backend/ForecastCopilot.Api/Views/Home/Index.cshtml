@@ -78,6 +78,23 @@ else if (Model.Facts is { } facts && Model.Batch is { } batch)
         </ul>
     </section>
 
+    <section class="panel summary-panel mb-4" aria-labelledby="summary-title">
+        <div class="summary-head">
+            <div>
+                <h2 id="summary-title" class="section-title">Batch summary</h2>
+                <p class="panel-note">Handover note written by a local LLM. It only phrases facts computed in C# – review order, close calls, weak fault types, threshold trade-off.</p>
+            </div>
+            <button type="button" id="summary-button" class="btn-steel" data-seed="@Model.Seed">Write summary</button>
+        </div>
+        <p id="summary-text" class="summary-text is-placeholder" aria-live="polite">Click “Write summary” for a short text for this batch at the current threshold.</p>
+        <dl id="summary-note" class="summary-note" hidden>
+            <div><dt>Review first</dt><dd data-field="reviewFirst"></dd></div>
+            <div><dt>Watch out</dt><dd data-field="watchOut"></dd></div>
+            <div><dt>Threshold trade-off</dt><dd data-field="thresholdTradeOff"></dd></div>
+        </dl>
+        <p id="summary-warning" class="summary-warning" hidden></p>
+    </section>
+
     <div class="row g-4">
         <section class="col-lg-5">
             <div class="panel h-100">

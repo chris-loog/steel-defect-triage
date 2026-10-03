@@ -23,3 +23,13 @@ public record ThresholdStat(
     [property: JsonPropertyName("auto_share")] double AutoShare,
     [property: JsonPropertyName("manual_share")] double ManualShare,
     [property: JsonPropertyName("error_rate")] double? ErrorRate); // null if nothing is auto-classified
+
+// Subset of GET /model-info (metrics.json written by train.py): per-class results on the held-out test set.
+public record ModelInfo(
+    [property: JsonPropertyName("per_class_test")] IReadOnlyDictionary<string, ClassMetric> PerClassTest);
+
+// Support = number of test defects whose true fault is this class.
+public record ClassMetric(
+    [property: JsonPropertyName("precision")] double Precision,
+    [property: JsonPropertyName("recall")] double Recall,
+    [property: JsonPropertyName("support")] double Support);

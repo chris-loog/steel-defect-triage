@@ -90,4 +90,50 @@
 
     slider.addEventListener("input", update);
     update(); // fills the chart with the starting split
+
+    // Handover note: one LLM call per click (slow), for the slider's current threshold.
+    const summaryButton = document.getElementById("summary-button");
+    const summaryText = document.getElementById("summary-text");
+    const summaryNote = document.getElementById("summary-note");
+    const summaryWarning = document.getElementById("summary-warning");
+    const summaryPanel = summaryButton.closest(".summary-panel");
+    let summaryThreshold = null; // threshold of the summary on screen
+
+    async function writeSummary() {
+        const threshold = slider.value;
+        summaryButton.disabled = true;
+        summaryButton.textContent = "Writing…";
+        summaryWarning.hidden = true;
+        try {
+            const response = await fetch(`/Home/Summary?seed=${summaryButton.dataset.seed}&threshold=${threshold}`);
+            const body = await response.json().catch(() => ({})); // e.g. an HTML error page
+            if (!response.ok) throw new Error(body.error ?? "The summary could not be written.");
+
+            // textContent, never innerHTML: LLM output is untrusted text.
+            summaryText.textContent = body.note.headline;
+            for (const dd of summaryNote.querySelectorAll("dd[data-field]")) dd.textContent = body.note[dd.dataset.field];
+            summaryText.classList.remove("is-placeholder");
+            summaryPanel.classList.remove("is-outdated");
+            summaryNote.hidden = false;
+            summaryThreshold = threshold;
+            if (body.unverifiedNumbers.length > 0) {
+                summaryWarning.textContent = `Check this text: it contains numbers that are not in the facts (${body.unverifiedNumbers.join(", ")}).`;
+                summaryWarning.hidden = false;
+            }
+        } catch (err) {
+            summaryText.textContent = err.message;
+            summaryText.classList.add("is-placeholder");
+            summaryPanel.classList.remove("is-outdated");
+            summaryNote.hidden = true;
+            summaryThreshold = null;
+        } finally {
+            summaryButton.disabled = false;
+            summaryButton.textContent = "Write summary";
+        }
+    }
+
+    summaryButton.addEventListener("click", writeSummary);
+    slider.addEventListener("input", () => {
+        if (summaryThreshold !== null) summaryPanel.classList.toggle("is-outdated", slider.value !== summaryThreshold);
+    });
 })();
