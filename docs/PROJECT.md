@@ -185,3 +185,9 @@ CI (`.github/workflows/ci.yml`) runs both on every pull request and on pushes to
 - Requirements: `requirements.txt` (runtime) ⊂ `requirements-test.txt` (+ pytest, httpx2; used by CI) ⊂ `requirements-dev.txt`.
 - CI: GitHub Actions, two parallel jobs (`python`: install → `train.py` → pytest; `dotnet`: `dotnet test`),
   read-only token permissions, no secrets.
+
+### Stage 11 – GitHub README
+- `README.md` is the portfolio entry point: pitch, "simulated data" note, Mermaid
+  architecture diagram, model results, Docker quick start, tests/CI. It links here for details rather than repeating them.
+- No screenshot yet – add one (`docs/images/`) once the UI is final.
+- `LICENSE`: MIT. CI badge only renders for visitors once the repo is public.

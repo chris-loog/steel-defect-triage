@@ -1,7 +1,7 @@
 # Progress
 
-**Current stage:** 10 – Quality (done; waiting for commit + PR + green CI run) → next: 11 – GitHub README
-**Next step:** Stage 11 in plan mode: polished GitHub README (screenshots, architecture, how to run, CI badge).
+**Current stage:** 11 – GitHub README (done; waiting for commit + PR) → next: 12 – Azure (optional)
+**Next step:** Stage 12 in plan mode: decide whether to deploy to Azure (paid resources – ask first).
 
 ## Stages
 - [x] 1 – Environment setup
@@ -14,7 +14,7 @@
 - [x] 8 – LLM
 - [x] 9 – Docker
 - [x] 10 – Quality (tests, CI)
-- [ ] 11 – GitHub README
+- [x] 11 – GitHub README
 - [ ] 12 – Azure (optional)
 
 ## Environment (verified)
@@ -31,6 +31,7 @@ Azure CLI not installed yet – install in Stage 12.
 - LLM: local Ollama (systemd service) with `qwen3.5`, `think:false`; config section `Llm` / env `Llm__*`.
   C# computes all facts (`ForecastFacts`), LLM only phrases them; summary loaded async via `/Home/Summary`.
 - GitHub repo `chris-loog/production-forecast-copilot` is **private** until polished.
+- README: Mermaid diagram, MIT license, no screenshot until the UI is final.
 - No PostgreSQL for now – CSV data. Add Postgres in Docker later only if useful.
 - IDE: JetBrains Rider (replaces VS Code). User handles git (review, commit, push, PR merge) themselves.
 - Rider plugins: Claude Code [Beta], Azure Toolkit for Rider, .env files support; Docker + Git + Database tools are bundled.
