@@ -3,18 +3,22 @@
 Weekend portfolio MVP for a Data & AI Engineer role. Keep it simple; this is not an enterprise system.
 
 ## What it does
-Historical hourly demand (CSV) → Python forecast of the next 24 hours → ASP.NET Core backend → web UI
-with chart + table → LLM writes a short interpretation of the forecast.
+Manufacturing/ERP context (digital-twin style): historical hourly plant load (kWh, a proxy for production
+activity) → Python forecast of the next 24 hours → ASP.NET Core backend → web UI with chart + table →
+LLM writes a short interpretation of the forecast.
 
 ## Architecture
 - `forecasting/` – Python: FastAPI + pandas + scikit-learn. `train.py` trains, `app.py` serves the forecast.
 - `backend/ForecastCopilot.Api/` – ASP.NET Core (MVC or Razor Pages, .NET 10). Calls Python via a typed
   HttpClient (`IHttpClientFactory`). Hosts the UI (Chart.js).
-- `data/` – demand CSV. `docs/PROGRESS.md` – stage tracker (read it first when resuming).
+- `data/` – raw + cleaned hourly CSV. `docs/PROGRESS.md` – stage tracker (read it first when resuming).
+  `docs/PROJECT.md` – project documentation (data source, features, how to run); keep it updated per stage.
 - Docker Compose runs both services. Azure deployment is optional (last stage).
 
 ## Key design rules
-- Model: RandomForest/GradientBoosting. Features: hour, day of week, lag 24h, lag 168h. Target: next 24 hourly values.
+- Data: real plant/machine data only, no weather-driven series. Source: UCI "Steel Industry Energy Consumption"
+  (DAEWOO Steel, 2018, 15-min → hourly, CC BY 4.0, attribution in `docs/PROJECT.md`).
+- Model: RandomForest/GradientBoosting. Features: hour, day of week, lag 24h, lag 168h. Target: next 24 hourly `Usage_kWh`.
   Always compare against the naive baseline "same hour yesterday" (MAE).
 - The LLM never produces numbers. It gets structured forecast JSON and writes a short factual summary
   (peaks, unusual highs/lows, change vs. previous day, patterns).
