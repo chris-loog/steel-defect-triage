@@ -26,5 +26,5 @@ forecasting/models/*.joblib
 .DS_Store
 CLAUDE.md
 
-# Raw downloads (rebuilt by forecasting/prepare_data.py)
+# Local raw/scratch data (not committed)
 data/raw/
