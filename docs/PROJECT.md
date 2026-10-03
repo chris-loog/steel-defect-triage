@@ -93,7 +93,7 @@ python -m venv .venv && .venv/bin/pip install -q -r requirements.txt
 # Python API must be running on port 8000 (see above)
 dotnet run --project backend/ForecastCopilot.Api   # → http://localhost:5088
 ```
-- `GET /` → forecast page (table of the next 24 hours; chart follows in Stage 7).
+- `GET /` → forecast page: KPI cards, Chart.js line chart (forecast vs. same hour yesterday), hourly table.
 - `GET /api/forecast` → same JSON as the Python `/forecast`; `502` ProblemDetails if Python is unreachable.
 - Config: `ForecastApi:BaseUrl` in `appsettings.json` (default `http://localhost:8000`);
   override with env var `ForecastApi__BaseUrl` (e.g. in Docker).
@@ -123,3 +123,11 @@ dotnet run --project backend/ForecastCopilot.Api   # → http://localhost:5088
 - C# records in `Models/ForecastResponse.cs` mirror the Pydantic models; `[JsonPropertyName]` keeps snake_case JSON.
 - Errors: the client turns "service down / timeout / bad JSON" into `ForecastApiUnavailableException`;
   `/api/forecast` returns 502 ProblemDetails, the page shows a friendly message, details go to the log.
+
+### Stage 7 – UI
+- Built: KPI row (units next 24 h, change vs. previous 24 h, peak hour, MAE vs. baseline), Chart.js line chart,
+  hourly table with coloured change column; dark navbar, cards, "Simulated data" badge.
+- KPIs are computed in C# (`ForecastPageViewModel`), not in JS – deterministic, reusable as LLM input in Stage 8.
+- Chart data: Razor embeds the forecast as `<script type="application/json">` (one Python call per page load);
+  `wwwroot/js/forecast-chart.js` reads it with `JSON.parse` (no inline JS).
+- Chart.js 4.5.1 vendored in `wwwroot/lib/chart.js/` (works offline / in Docker, like Bootstrap).
