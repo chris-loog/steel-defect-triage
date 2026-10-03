@@ -3,40 +3,136 @@
     ViewData["Title"] = "Production forecast";
 }
 
-<h1 class="h3">Production forecast – next 24 hours</h1>
-<p class="text-muted">Data source: simulated production line (digital-twin simulator, not real plant data).</p>
+<div class="d-flex flex-wrap align-items-end justify-content-between gap-2 mb-4">
+    <div>
+        <h1 class="h3 mb-1">Production forecast · next 24 hours</h1>
+        <p class="text-muted mb-0">
+            <span class="badge text-bg-warning me-1">Simulated data</span>
+            Digital-twin production line simulator, not real plant data.
+        </p>
+    </div>
+    @if (Model.Forecast is { } header)
+    {
+        <div class="text-muted small text-md-end">
+            Last actual hour<br/>
+            <strong class="text-body">@header.LastActualTimestamp.ToString("ddd yyyy-MM-dd HH:mm")</strong>
+        </div>
+    }
+</div>
 
 @if (Model.Error is not null)
 {
-    <div class="alert alert-warning">@Model.Error</div>
+    <div class="card border-warning shadow-sm">
+        <div class="card-body">
+            <h2 class="h5 card-title">Forecast unavailable</h2>
+            <p class="card-text mb-0">@Model.Error</p>
+        </div>
+    </div>
 }
 else if (Model.Forecast is { } f)
 {
-    <ul class="list-unstyled">
-        <li>Last actual hour: <strong>@f.LastActualTimestamp.ToString("ddd yyyy-MM-dd HH:mm")</strong></li>
-        <li>Model: @f.Model · MAE @f.Mae.Model.ToString("0.0") units/h
-            (baseline "same hour yesterday": @f.Mae.BaselineSameHourYesterday.ToString("0.0"))</li>
-    </ul>
+    var peak = Model.PeakPoint!;
+    var change = Model.ChangePercent;
 
-    <table class="table table-sm table-striped w-auto">
-        <thead>
-        <tr>
-            <th>Hour</th>
-            <th class="text-end">Forecast (units)</th>
-            <th class="text-end">Same hour yesterday</th>
-            <th class="text-end">Change</th>
-        </tr>
-        </thead>
-        <tbody>
-        @foreach (var p in f.Forecast)
-        {
-            <tr>
-                <td>@p.Timestamp.ToString("ddd HH:mm")</td>
-                <td class="text-end">@p.UnitsPredicted</td>
-                <td class="text-end">@p.UnitsSameHourYesterday</td>
-                <td class="text-end">@((p.UnitsPredicted - p.UnitsSameHourYesterday).ToString("+0;-0;0"))</td>
-            </tr>
-        }
-        </tbody>
-    </table>
+    <div class="row g-3 mb-4">
+        <div class="col-6 col-lg-3">
+            <div class="card kpi-card h-100">
+                <div class="card-body">
+                    <div class="kpi-label">Units next 24 h</div>
+                    <div class="kpi-value">@Model.TotalPredicted.ToString("N0")</div>
+                    <div class="kpi-sub">previous 24 h: @Model.TotalSameHourYesterday.ToString("N0")</div>
+                </div>
+            </div>
+        </div>
+        <div class="col-6 col-lg-3">
+            <div class="card kpi-card h-100">
+                <div class="card-body">
+                    <div class="kpi-label">Change vs. previous 24 h</div>
+                    @if (change is null)
+                    {
+                        <div class="kpi-value text-muted">n/a</div>
+                        <div class="kpi-sub">no output yesterday</div>
+                    }
+                    else
+                    {
+                        <div class="kpi-value @(change >= 0 ? "text-success" : "text-danger")">
+                            @(change >= 0 ? "▲" : "▼") @change.Value.ToString("+0.0;-0.0;0.0")&nbsp;%
+                        </div>
+                        <div class="kpi-sub">same hours yesterday</div>
+                    }
+                </div>
+            </div>
+        </div>
+        <div class="col-6 col-lg-3">
+            <div class="card kpi-card h-100">
+                <div class="card-body">
+                    <div class="kpi-label">Peak hour</div>
+                    <div class="kpi-value">@peak.Timestamp.ToString("ddd HH:mm")</div>
+                    <div class="kpi-sub">@peak.UnitsPredicted units forecast</div>
+                </div>
+            </div>
+        </div>
+        <div class="col-6 col-lg-3">
+            <div class="card kpi-card h-100">
+                <div class="card-body">
+                    <div class="kpi-label">Model error (MAE)</div>
+                    <div class="kpi-value">@f.Mae.Model.ToString("0.0") <span class="kpi-unit">units/h</span></div>
+                    <div class="kpi-sub">baseline: @f.Mae.BaselineSameHourYesterday.ToString("0.0") · @f.Model</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="card shadow-sm mb-4">
+        <div class="card-header bg-body">
+            <h2 class="h6 mb-0">Hourly output forecast</h2>
+        </div>
+        <div class="card-body">
+            <div class="chart-container">
+                <canvas id="forecast-chart" aria-label="Line chart of forecast units per hour vs. same hour yesterday" role="img"></canvas>
+            </div>
+        </div>
+    </div>
+
+    <div class="card shadow-sm">
+        <div class="card-header bg-body">
+            <h2 class="h6 mb-0">Hourly detail</h2>
+        </div>
+        <div class="table-responsive table-scroll">
+            <table class="table table-sm table-hover align-middle mb-0">
+                <thead class="sticky-top">
+                <tr>
+                    <th>Hour</th>
+                    <th class="text-end">Forecast (units)</th>
+                    <th class="text-end">Same hour yesterday</th>
+                    <th class="text-end">Change</th>
+                </tr>
+                </thead>
+                <tbody>
+                @foreach (var p in f.Forecast)
+                {
+                    var diff = p.UnitsPredicted - p.UnitsSameHourYesterday;
+                    <tr>
+                        <td>@p.Timestamp.ToString("ddd HH:mm")</td>
+                        <td class="text-end fw-semibold">@p.UnitsPredicted</td>
+                        <td class="text-end text-muted">@p.UnitsSameHourYesterday</td>
+                        <td class="text-end @(diff > 0 ? "text-success" : diff < 0 ? "text-danger" : "text-muted")">
+                            @diff.ToString("+0;-0;0")
+                        </td>
+                    </tr>
+                }
+                </tbody>
+            </table>
+        </div>
+    </div>
+}
+
+@section Scripts {
+    @if (Model.Forecast is { } data)
+    {
+        @* Data only (type=application/json is never executed); forecast-chart.js reads it with JSON.parse. *@
+        <script id="forecast-data" type="application/json">@Json.Serialize(data.Forecast)</script>
+        <script src="~/lib/chart.js/dist/chart.umd.min.js"></script>
+        <script src="~/js/forecast-chart.js" asp-append-version="true"></script>
+    }
 }

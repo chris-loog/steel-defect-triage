@@ -1,8 +1,8 @@
 # Progress
 
-**Current stage:** 6 – .NET application (done; waiting for commit + PR) → next: 7 – UI
-**Next step:** Stage 7 in plan mode: Chart.js chart + table on `/`, fetching `GET /api/forecast`
-(.NET on port 5088, Python on 8000; see PROJECT.md §6).
+**Current stage:** 7 – UI (done; waiting for commit + PR) → next: 8 – LLM
+**Next step:** Stage 8 in plan mode: LLM provider interface (default Ollama), prompt from forecast JSON + KPIs
+(`ForecastPageViewModel`), short planner summary on `/`. LLM never produces numbers.
 
 ## Stages
 - [x] 1 – Environment setup
@@ -11,7 +11,7 @@
 - [x] 4 – Forecasting
 - [x] 5 – Python API
 - [x] 6 – .NET application
-- [ ] 7 – UI
+- [x] 7 – UI
 - [ ] 8 – LLM
 - [ ] 9 – Docker
 - [ ] 10 – Quality (tests, CI)
@@ -38,6 +38,7 @@ Azure CLI not installed yet – install in Stage 12.
 - Simulator: 3 shifts Mon–Fri, Sat early only, 2 years hourly, seed 42 (see PROJECT.md §3).
 - Model: RandomForest (test MAE 10.3 vs. baseline 40.6/16.3); `model.joblib` gitignored, `metrics.json` committed.
 - Backend: ASP.NET Core **MVC** + `ProductionForecastCopilot.slnx` at repo root; config key `ForecastApi:BaseUrl`.
+- UI: chart data embedded as JSON in the page (not fetched); Chart.js 4.5.1 vendored locally; KPIs computed in C#.
 - Exploration in a Jupyter notebook (`forecasting/notebooks/`), outputs kept so GitHub shows plots.
 
 ## Open issues
