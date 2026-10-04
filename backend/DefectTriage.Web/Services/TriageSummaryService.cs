@@ -43,7 +43,8 @@ public class TriageSummaryService(ILlmClient llm)
          "thresholdTradeOff": "One step higher (0.80) adds 5 reviews and lowers the expected error rate by 2.4 points to 6.1%. One step lower (0.70) saves 4 reviews but raises it by 1.9 points."}
         """;
 
-    // JSON Schema for Ollama's "format": the answer must be exactly this object.
+    // JSON Schema for structured output: the answer must be exactly this object.
+    // additionalProperties = false is required by Azure OpenAI strict mode; Ollama accepts it too.
     private static readonly JsonElement HandoverSchema = JsonSerializer.SerializeToElement(new
     {
         type = "object",
@@ -55,6 +56,7 @@ public class TriageSummaryService(ILlmClient llm)
             thresholdTradeOff = new { type = "string" },
         },
         required = new[] { "headline", "reviewFirst", "watchOut", "thresholdTradeOff" },
+        additionalProperties = false,
     });
 
     private static readonly JsonSerializerOptions JsonOptions = new() { WriteIndented = true };

@@ -11,23 +11,43 @@ var classifierApiUrl = builder.Configuration["ClassifierApi:BaseUrl"]
 builder.Services.AddHttpClient<DefectApiClient>(client =>
 {
     client.BaseAddress = new Uri(classifierApiUrl);
-    client.Timeout = TimeSpan.FromSeconds(10);
+    client.Timeout = TimeSpan.FromSeconds(30); // Azure Container Apps: scale-to-zero cold start takes a while
 });
 
-// LLM provider behind ILlmClient. Only "ollama" for now; another provider = one more class + one more case here.
+// LLM provider behind ILlmClient: local Ollama (default) or Azure OpenAI (cloud deployment).
+string RequiredConfig(string key) =>
+    builder.Configuration[key] ?? throw new InvalidOperationException($"Missing config {key}.");
+
 var llmProvider = builder.Configuration["Llm:Provider"] ?? "ollama";
-if (llmProvider != "ollama")
-    throw new InvalidOperationException($"Unknown Llm:Provider '{llmProvider}'. Supported: ollama.");
-var ollamaUrl = builder.Configuration["Llm:Ollama:BaseUrl"]
-    ?? throw new InvalidOperationException("Missing config Llm:Ollama:BaseUrl.");
-var ollamaModel = builder.Configuration["Llm:Ollama:Model"]
-    ?? throw new InvalidOperationException("Missing config Llm:Ollama:Model.");
-builder.Services.AddHttpClient<ILlmClient, OllamaLlmClient>(http => new OllamaLlmClient(http, ollamaModel))
-    .ConfigureHttpClient(client =>
-    {
-        client.BaseAddress = new Uri(ollamaUrl);
-        client.Timeout = TimeSpan.FromSeconds(60); // local models are slow, especially on first load
-    });
+switch (llmProvider)
+{
+    case "ollama":
+        // Read config here, not inside the lambda (that runs lazily) → missing keys fail at startup.
+        var ollamaUrl = RequiredConfig("Llm:Ollama:BaseUrl");
+        var ollamaModel = RequiredConfig("Llm:Ollama:Model");
+        builder.Services.AddHttpClient<ILlmClient, OllamaLlmClient>(http => new OllamaLlmClient(http, ollamaModel))
+            .ConfigureHttpClient(client =>
+            {
+                client.BaseAddress = new Uri(ollamaUrl);
+                client.Timeout = TimeSpan.FromSeconds(60); // local models are slow, especially on first load
+            });
+        break;
+    case "azureopenai":
+        var azureEndpoint = RequiredConfig("Llm:AzureOpenAI:Endpoint");
+        var deployment = RequiredConfig("Llm:AzureOpenAI:Deployment");
+        // Key from env var / Container App secret, never from appsettings.json (that file is committed).
+        var apiKey = RequiredConfig("Llm:AzureOpenAI:ApiKey");
+        builder.Services.AddHttpClient<ILlmClient, AzureOpenAiLlmClient>(http => new AzureOpenAiLlmClient(http, deployment))
+            .ConfigureHttpClient(client =>
+            {
+                client.BaseAddress = new Uri(azureEndpoint);
+                client.DefaultRequestHeaders.Add("api-key", apiKey);
+                client.Timeout = TimeSpan.FromSeconds(30);
+            });
+        break;
+    default:
+        throw new InvalidOperationException($"Unknown Llm:Provider '{llmProvider}'. Supported: ollama, azureopenai.");
+}
 builder.Services.AddScoped<TriageSummaryService>();
 
 var app = builder.Build();
