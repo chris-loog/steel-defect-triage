@@ -1,6 +1,6 @@
 namespace ForecastCopilot.Api.Models;
 
-// All numbers the UI (and from Stage 16 the LLM) talk about, computed once in C#.
+// All numbers the UI and the LLM talk about, computed once in C#.
 // Batch numbers describe this batch; ExpectedErrorRate comes from the held-out test set (389 defects).
 public record TriageFacts(
     int BatchSize,

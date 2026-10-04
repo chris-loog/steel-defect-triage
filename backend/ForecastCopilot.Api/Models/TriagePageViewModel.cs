@@ -7,7 +7,7 @@ public record TriagePageViewModel(
     IReadOnlyList<ThresholdStat>? ThresholdStats,
     string? Error)
 {
-    // KPIs come from TriageFacts – the same numbers the LLM summary will be based on (Stage 16).
+    // KPIs come from TriageFacts – the same numbers the LLM summary is based on.
     public TriageFacts? Facts { get; } = Batch is null || ThresholdStats is null
         ? null
         : TriageFacts.From(Batch, ThresholdStats, TriageFacts.DefaultThreshold);

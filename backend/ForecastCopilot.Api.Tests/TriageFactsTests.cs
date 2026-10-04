@@ -2,7 +2,7 @@ using ForecastCopilot.Api.Models;
 
 namespace ForecastCopilot.Api.Tests;
 
-// Unit tests for TriageFacts.From – the numbers the UI shows and (from Stage 16) the LLM phrases.
+// Unit tests for TriageFacts.From – the numbers the UI shows and the LLM phrases.
 public class TriageFactsTests
 {
     private static BatchDefect Defect(int row, string predicted, double confidence, string? trueFault = null) =>
