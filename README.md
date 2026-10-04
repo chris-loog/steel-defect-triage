@@ -1,6 +1,6 @@
 # Steel Defect Triage Copilot
 
-[![CI](https://github.com/chris-loog/production-forecast-copilot/actions/workflows/ci.yml/badge.svg)](https://github.com/chris-loog/production-forecast-copilot/actions/workflows/ci.yml)
+[![CI](https://github.com/chris-loog/steel-defect-triage/actions/workflows/ci.yml/badge.svg)](https://github.com/chris-loog/steel-defect-triage/actions/workflows/ci.yml)
 ![.NET 10](https://img.shields.io/badge/.NET-10-512BD4)
 ![Python 3.14](https://img.shields.io/badge/Python-3.14-3776AB)
 ![License: MIT](https://img.shields.io/badge/License-MIT-green)
@@ -33,7 +33,7 @@ batches), so the page can also mark wrong predictions.
 flowchart LR
     DATA[("data/steel_plates<br/>UCI, CC BY 4.0")]
     subgraph compose["Docker Compose"]
-        PY["forecast-api<br/>Python · FastAPI<br/>scikit-learn"]
+        PY["classifier-api<br/>Python · FastAPI<br/>scikit-learn"]
         WEB["web<br/>ASP.NET Core MVC<br/>typed HttpClient · Chart.js"]
     end
     LLM["Ollama on host<br/>qwen3.5"]
@@ -71,7 +71,7 @@ Stratified 80/20 split (seed 42, 389 test defects). Model chosen by 5-fold cross
   | 0.7 | 68 % | 10.9 % |
   | 0.8 | 57 % | 8.2 % |
 
-Exploration: [`forecasting/notebooks/02_steel_explore.ipynb`](forecasting/notebooks/02_steel_explore.ipynb).
+Exploration: [`classifier/notebooks/02_steel_explore.ipynb`](classifier/notebooks/02_steel_explore.ipynb).
 
 ## Tech stack
 - **ML service:** Python 3.14, pandas, scikit-learn, FastAPI, Jupyter (exploration)
@@ -90,25 +90,25 @@ docker compose up --build -d
 docker compose down
 ```
 
-The Python image trains the model at build time. Without Docker: in `forecasting/` create a venv, install
+The Python image trains the model at build time. Without Docker: in `classifier/` create a venv, install
 `requirements-dev.txt`, run `python train.py` and `uvicorn app:app --port 8000`; then
-`dotnet run --project backend/ForecastCopilot.Api`. Configuration via environment variables: see `.env.example`.
+`dotnet run --project backend/DefectTriage.Web`. Configuration via environment variables: see `.env.example`.
 
 ## Tests & CI
 ```bash
-cd forecasting && .venv/bin/pytest -q             # features, leakage decision, API contract
-dotnet test ProductionForecastCopilot.slnx -v q   # facts, NumberGuard, prompt, controller (in-memory)
+cd classifier && .venv/bin/pytest -q            # features, leakage decision, API contract
+dotnet test SteelDefectTriage.slnx -v q          # facts, NumberGuard, prompt, controller (in-memory)
 ```
 The controller tests run the whole web app in memory (`WebApplicationFactory`) with a fake Python API and a fake
 LLM. GitHub Actions runs both suites on every pull request and on every push to `main`. Tests never call the LLM.
 
 ## Repository layout
 ```
-data/steel_plates/           UCI Steel Plates Faults (unchanged) + attribution README
-forecasting/                 features.py, train.py, app.py (FastAPI), model/ (metrics, test predictions), tests/, notebooks/
-backend/ForecastCopilot.Api/ ASP.NET Core MVC app: API client, triage/summary facts, LLM client, NumberGuard, UI
-backend/ForecastCopilot.Api.Tests/  xUnit tests
-compose.yaml                 runs forecast-api + web
+data/steel_plates/               UCI Steel Plates Faults (unchanged) + attribution README
+classifier/                      features.py, train.py, app.py (FastAPI), model/ (metrics, test predictions), tests/, notebooks/
+backend/DefectTriage.Web/        ASP.NET Core MVC app: API client, triage/summary facts, LLM client, NumberGuard, UI
+backend/DefectTriage.Web.Tests/  xUnit tests
+compose.yaml                     runs classifier-api + web
 ```
 
 ## Limitations & next steps

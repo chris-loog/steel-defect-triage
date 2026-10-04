@@ -1,0 +1,6 @@
+<Solution>
+  <Folder Name="/backend/">
+    <Project Path="backend/DefectTriage.Web.Tests/DefectTriage.Web.Tests.csproj" />
+    <Project Path="backend/DefectTriage.Web/DefectTriage.Web.csproj" />
+  </Folder>
+</Solution>

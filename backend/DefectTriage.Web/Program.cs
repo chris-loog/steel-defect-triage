@@ -1,4 +1,4 @@
-using ForecastCopilot.Api.Services;
+using DefectTriage.Web.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -6,11 +6,11 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddControllersWithViews();
 
 // Typed HttpClient for the Python defect classifier service; IHttpClientFactory manages the connections.
-var forecastApiUrl = builder.Configuration["ForecastApi:BaseUrl"]
-    ?? throw new InvalidOperationException("Missing config ForecastApi:BaseUrl.");
+var classifierApiUrl = builder.Configuration["ClassifierApi:BaseUrl"]
+    ?? throw new InvalidOperationException("Missing config ClassifierApi:BaseUrl.");
 builder.Services.AddHttpClient<DefectApiClient>(client =>
 {
-    client.BaseAddress = new Uri(forecastApiUrl);
+    client.BaseAddress = new Uri(classifierApiUrl);
     client.Timeout = TimeSpan.FromSeconds(10);
 });
 

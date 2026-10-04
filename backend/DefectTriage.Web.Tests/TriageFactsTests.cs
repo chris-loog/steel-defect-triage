@@ -1,6 +1,6 @@
-using ForecastCopilot.Api.Models;
+using DefectTriage.Web.Models;
 
-namespace ForecastCopilot.Api.Tests;
+namespace DefectTriage.Web.Tests;
 
 // Unit tests for TriageFacts.From – the numbers the UI shows and the LLM phrases.
 public class TriageFactsTests

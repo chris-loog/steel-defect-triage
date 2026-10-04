@@ -1,7 +1,7 @@
 using System.Text.Json;
-using ForecastCopilot.Api.Models;
+using DefectTriage.Web.Models;
 
-namespace ForecastCopilot.Api.Services;
+namespace DefectTriage.Web.Services;
 
 // Turns precomputed summary facts into a structured handover note for a quality engineer.
 // Prompt + schema live here, transport in ILlmClient, the number check in NumberGuard.

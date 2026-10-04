@@ -1,6 +1,6 @@
-using ForecastCopilot.Api.Models;
+using DefectTriage.Web.Models;
 
-namespace ForecastCopilot.Api.Tests;
+namespace DefectTriage.Web.Tests;
 
 // Unit tests for SummaryFacts.From – the extra insights the LLM handover note talks about.
 public class SummaryFactsTests

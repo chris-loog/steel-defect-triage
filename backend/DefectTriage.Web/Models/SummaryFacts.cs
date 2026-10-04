@@ -1,4 +1,4 @@
-namespace ForecastCopilot.Api.Models;
+namespace DefectTriage.Web.Models;
 
 // Everything the LLM handover note may talk about, computed once in C#.
 // Triage = the basics the page shows; the other lists are insights the page doesn't show.

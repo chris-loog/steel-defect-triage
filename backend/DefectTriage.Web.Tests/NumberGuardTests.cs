@@ -1,6 +1,6 @@
-using ForecastCopilot.Api.Services;
+using DefectTriage.Web.Services;
 
-namespace ForecastCopilot.Api.Tests;
+namespace DefectTriage.Web.Tests;
 
 // The guard flags numbers in the LLM answer that don't appear in the facts JSON.
 public class NumberGuardTests

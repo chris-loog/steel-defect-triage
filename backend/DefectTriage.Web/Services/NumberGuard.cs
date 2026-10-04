@@ -1,7 +1,7 @@
 using System.Globalization;
 using System.Text.RegularExpressions;
 
-namespace ForecastCopilot.Api.Services;
+namespace DefectTriage.Web.Services;
 
 // Deterministic check on the non-deterministic LLM: every number in the answer must appear in the facts.
 // Flags only (the UI shows a warning); it doesn't block the summary.

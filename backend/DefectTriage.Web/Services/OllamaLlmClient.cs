@@ -1,7 +1,7 @@
 using System.Text.Json;
 using System.Text.Json.Serialization;
 
-namespace ForecastCopilot.Api.Services;
+namespace DefectTriage.Web.Services;
 
 // Typed HttpClient for a local Ollama server (POST /api/chat).
 // BaseAddress and Timeout are configured in Program.cs; the model name comes from config Llm:Ollama:Model.

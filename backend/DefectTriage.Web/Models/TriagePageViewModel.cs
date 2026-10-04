@@ -1,4 +1,4 @@
-namespace ForecastCopilot.Api.Models;
+namespace DefectTriage.Web.Models;
 
 // Either Batch/ThresholdStats are set, or Error explains why the Python service could not deliver them.
 public record TriagePageViewModel(

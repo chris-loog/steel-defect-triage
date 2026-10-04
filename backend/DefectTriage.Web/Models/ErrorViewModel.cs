@@ -1,4 +1,4 @@
-namespace ForecastCopilot.Api.Models;
+namespace DefectTriage.Web.Models;
 
 public class ErrorViewModel
 {
