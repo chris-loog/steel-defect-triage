@@ -22,7 +22,7 @@ public class TriageSummaryServiceTests
     }
 
     private static readonly SummaryFacts Facts = new(
-        new TriageFacts(50, [new FaultCount("Bumps", 21, 0.42)], 0.70, 34, 16, 0.1091, []),
+        new ShownOnPage(50, 0.70, 34, 16, 10.9),
         ReviewQueue: [new ReviewItem(1203, "Pastry", 0.41, "Other_Faults", 0.38, 0.03)],
         ConfusionGroups: [new ConfusionGroup("Other_Faults vs Pastry", 6, [1203])],
         AutoReliability: [new AutoReliability("Pastry", 4, 64.5)],

@@ -54,7 +54,7 @@ public class HomeControllerTests(WebApplicationFactory<Program> factory) : IClas
 
     // Same grid as the slider: 0.30-0.95 in steps of 0.05.
     private static readonly ThresholdStat[] Stats = Enumerable.Range(6, 14)
-        .Select(i => new ThresholdStat(i * 0.05, 300 - i * 10, 0.8, 0.2, 0.10))
+        .Select(i => new ThresholdStat(i * 0.05, 0.10))
         .ToArray();
 
     // Key line: ConfigureTestServices runs after Program.cs, so these registrations replace the real ones.

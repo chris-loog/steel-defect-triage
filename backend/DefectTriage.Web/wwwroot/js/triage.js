@@ -2,21 +2,22 @@
 // Razor renders the starting state (works without JS); this script only switches classes and text.
 (() => {
     const faultMixEl = document.getElementById("fault-mix-data");
-    const statsEl = document.getElementById("threshold-stats-data");
+    const errorRatesEl = document.getElementById("error-rates-data");
     const slider = document.getElementById("threshold");
-    if (!faultMixEl || !statsEl || !slider) return;
+    if (!faultMixEl || !errorRatesEl || !slider) return;
 
-    // FaultMix is a C# record -> camelCase; ThresholdStat uses the Python snake_case names (Models/DefectApiModels.cs).
+    // Both from Razor: FaultMix (camelCase C# record) and ThresholdGrid.ErrorRates ("0.70" -> rate or null).
     const faultMix = JSON.parse(faultMixEl.textContent);
-    const thresholdStats = JSON.parse(statsEl.textContent);
+    const errorRates = JSON.parse(errorRatesEl.textContent);
 
     const strip = document.querySelector(".strip");
+    const axisMin = parseFloat(strip.dataset.axisMin); // lowest threshold; the axis runs from there to 1.00
     const dots = [...document.querySelectorAll(".strip-plot .dot")];
     const rows = [...document.querySelectorAll("tr[data-confidence]")];
     const percent = x => `${(x * 100).toFixed(1)} %`; // same format as Razor's "0.0 %"
     const setText = (id, value) => { document.getElementById(id).textContent = value; };
 
-    // Same rule as Python and TriageFacts: confidence >= threshold -> classified automatically.
+    // Same rule as Python and BatchDefect.IsAutoAt: confidence >= threshold -> classified automatically.
     const isAuto = (el, t) => parseFloat(el.dataset.confidence) >= t;
 
     const css = getComputedStyle(document.documentElement);
@@ -54,8 +55,8 @@
     function update() {
         const t = parseFloat(slider.value);
 
-        // Strip: line + hatched zone follow the CSS variable; axis runs from 0.30 to 1.00.
-        strip.style.setProperty("--threshold", `${((t - 0.3) / 0.7) * 100}%`);
+        // Strip: line + hatched zone follow the CSS variable.
+        strip.style.setProperty("--threshold", `${((t - axisMin) / (1 - axisMin)) * 100}%`);
         for (const dot of dots) {
             const auto = isAuto(dot, t);
             dot.classList.toggle("is-auto", auto);
@@ -73,12 +74,11 @@
             row.querySelector(".triage-status").textContent = rowAuto ? "Automatic" : "Manual review";
         }
 
-        // Thresholds are floats -> match with a tolerance, not ===.
-        const stat = thresholdStats.find(s => Math.abs(s.threshold - t) < 1e-6);
+        const errorRate = errorRates[t.toFixed(2)]; // same "0.00" key format as ThresholdGrid.ErrorRates
         setText("n-manual", rows.length - auto);
         setText("n-auto", auto);
         setText("threshold-value", t.toFixed(2));
-        setText("error-rate", stat && stat.error_rate !== null ? percent(stat.error_rate) : "n/a");
+        setText("error-rate", errorRate == null ? "n/a" : percent(errorRate));
         slider.setAttribute("aria-valuetext", `${t.toFixed(2)}: ${rows.length - auto} defects to manual review`);
 
         if (chart) {

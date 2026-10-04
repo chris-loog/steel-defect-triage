@@ -4,11 +4,19 @@
     ViewData["Title"] = $"Batch {Model.Seed}";
     var inv = CultureInfo.InvariantCulture;
 
-    // Triage strip axis: confidence 0.30 ... 1.00 in columns of 0.025, so every slider step (0.05) is a column edge.
-    const double axisMin = 0.30, binWidth = 0.025;
-    const int binCount = 28;
+    var facts = Model.Facts;
+    var grid = Model.Grid;
+
+    // Triage strip axis: confidence from the lowest threshold to 1.00, in columns of half a slider step,
+    // so every slider step is a column edge.
+    var axisMin = grid.Min;
+    var binWidth = grid.Step / 2;
+    var binCount = (int)Math.Round((1 - axisMin) / binWidth);
     string Pct(double confidence) => ((confidence - axisMin) / (1 - axisMin) * 100).ToString("0.###", inv);
     int Bin(double confidence) => Math.Clamp((int)Math.Floor((confidence - axisMin) / binWidth + 1e-9), 0, binCount - 1);
+
+    var columns = Model.Batch.GroupBy(d => Bin(d.Confidence)).ToDictionary(g => g.Key, g => g.OrderBy(d => d.Confidence).ToList());
+    var thresholdText = facts.Threshold.ToString("0.00", inv);
 }
 
 @section HeaderActions {
@@ -18,137 +26,122 @@
     </div>
 }
 
-@if (Model.Error is not null)
-{
-    <section class="panel panel-error" role="alert">
-        <h1 class="section-title">This batch can't be loaded</h1>
-        <p class="mb-0">@Model.Error</p>
-    </section>
-}
-else if (Model.Facts is { } facts && Model.Batch is { } batch)
-{
-    var columns = batch.GroupBy(d => Bin(d.Confidence)).ToDictionary(g => g.Key, g => g.OrderBy(d => d.Confidence).ToList());
-    var thresholdText = facts.Threshold.ToString("0.00", inv);
+<section class="triage" aria-labelledby="triage-headline">
+    <h1 id="triage-headline" class="triage-headline">
+        <span class="marker"><span id="n-manual">@facts.ManualReview</span> of @facts.BatchSize defects</span> need your review.
+    </h1>
+    <p class="triage-lede">
+        At threshold <strong id="threshold-value">@thresholdText</strong> the other <strong id="n-auto">@facts.AutoClassified</strong>
+        are classified automatically. On the held-out test set,
+        <strong id="error-rate">@(facts.ExpectedErrorRate is { } e ? e.ToString("0.0 %", inv) : "n/a")</strong>
+        of automatically classified defects had the wrong fault type.
+    </p>
 
-    <section class="triage" aria-labelledby="triage-headline">
-        <h1 id="triage-headline" class="triage-headline">
-            <span class="marker"><span id="n-manual">@facts.ManualReview</span> of @facts.BatchSize defects</span> need your review.
-        </h1>
-        <p class="triage-lede">
-            At threshold <strong id="threshold-value">@thresholdText</strong> the other <strong id="n-auto">@facts.AutoClassified</strong>
-            are classified automatically. On the held-out test set,
-            <strong id="error-rate">@(facts.ExpectedErrorRate is { } e ? e.ToString("0.0 %", inv) : "n/a")</strong>
-            of automatically classified defects had the wrong fault type.
-        </p>
-
-        <div class="strip" style="--threshold: @Pct(facts.Threshold)%">
-            <div class="strip-plot" role="img"
-                 aria-label="Each dot is one defect, placed by model confidence. Dots left of the threshold line go to manual review.">
-                <div class="manual-zone"></div>
-                @for (var b = 0; b < binCount; b++)
-                {
-                    <div class="strip-column">
-                        @if (columns.TryGetValue(b, out var dots))
+    <div class="strip" style="--threshold: @Pct(facts.Threshold)%" data-axis-min="@axisMin.ToString("R", inv)">
+        <div class="strip-plot" role="img"
+             aria-label="Each dot is one defect, placed by model confidence. Dots left of the threshold line go to manual review.">
+            <div class="manual-zone"></div>
+            @for (var b = 0; b < binCount; b++)
+            {
+                <div class="strip-column">
+                    @if (columns.TryGetValue(b, out var dots))
+                    {
+                        foreach (var d in dots)
                         {
-                            foreach (var d in dots)
-                            {
-                                <span class="dot @(d.Confidence >= facts.Threshold ? "is-auto" : "is-manual") @(d.IsCorrect ? "" : "is-wrong")"
-                                      data-confidence="@d.Confidence.ToString("R", inv)"
-                                      title="Row @d.Row: @d.PredictedFault, confidence @d.Confidence.ToString("0.00", inv)@(d.IsCorrect ? "" : $", actually {d.TrueFault}")"></span>
-                            }
+                            <span class="dot @(d.IsAutoAt(facts.Threshold) ? "is-auto" : "is-manual") @(d.IsCorrect ? "" : "is-wrong")"
+                                  data-confidence="@d.Confidence.ToString("R", inv)"
+                                  title="Row @d.Row: @d.PredictedFault, confidence @d.Confidence.ToString("0.00", inv)@(d.IsCorrect ? "" : $", actually {d.TrueFault}")"></span>
                         }
-                    </div>
-                }
-                <div class="threshold-line" aria-hidden="true"></div>
-            </div>
-            <label for="threshold" class="visually-hidden">Confidence threshold</label>
-            <input type="range" id="threshold" class="strip-slider" min="0.30" max="0.95" step="0.05" value="@thresholdText">
-            <div class="strip-axis" aria-hidden="true">
-                @for (var t = 3; t <= 10; t++)
-                {
-                    <span style="left: @Pct(t / 10.0)%">@((t / 10.0).ToString("0.0", inv))</span>
-                }
-            </div>
-        </div>
-
-        <ul class="strip-legend">
-            <li><span class="dot is-manual"></span>Manual review: confidence below the threshold</li>
-            <li><span class="dot is-auto"></span>Classified automatically</li>
-            <li><span class="dot is-auto is-wrong"></span>Wrong prediction (known because this is test data)</li>
-        </ul>
-    </section>
-
-    <section class="panel summary-panel mb-4" aria-labelledby="summary-title">
-        <div class="summary-head">
-            <div>
-                <h2 id="summary-title" class="section-title">Batch summary</h2>
-                <p class="panel-note">Handover note written by a local LLM. It only phrases facts computed in C# – review order, close calls, weak fault types, threshold trade-off.</p>
-            </div>
-            <button type="button" id="summary-button" class="btn-steel" data-seed="@Model.Seed">Write summary</button>
-        </div>
-        <p id="summary-text" class="summary-text is-placeholder" aria-live="polite">Click “Write summary” for a short text for this batch at the current threshold.</p>
-        <dl id="summary-note" class="summary-note" hidden>
-            <div><dt>Review first</dt><dd data-field="reviewFirst"></dd></div>
-            <div><dt>Watch out</dt><dd data-field="watchOut"></dd></div>
-            <div><dt>Threshold trade-off</dt><dd data-field="thresholdTradeOff"></dd></div>
-        </dl>
-        <p id="summary-warning" class="summary-warning" hidden></p>
-    </section>
-
-    <div class="row g-4">
-        <section class="col-lg-5">
-            <div class="panel h-100">
-                <h2 class="section-title">Fault mix</h2>
-                <p class="panel-note">Predicted fault types in this batch, split by where they go.</p>
-                <div class="chart-container">
-                    <canvas id="fault-mix-chart" role="img"
-                            aria-label="Bar chart of predicted fault types in this batch, split into manual review and automatic"></canvas>
+                    }
                 </div>
-            </div>
-        </section>
-        <section class="col-lg-7">
-            <div class="panel h-100">
-                <h2 class="section-title">Defects, least confident first</h2>
-                <p class="panel-note">The true fault is known only because this demo batch comes from the test set.</p>
-                <div class="table-scroll">
-                    <table class="defect-table">
-                        <thead>
-                        <tr>
-                            <th scope="col">Row</th>
-                            <th scope="col">Predicted fault</th>
-                            <th scope="col" class="num">Confidence</th>
-                            <th scope="col">Goes to</th>
-                            <th scope="col">True fault</th>
-                        </tr>
-                        </thead>
-                        <tbody>
-                        @foreach (var d in batch.OrderBy(d => d.Confidence))
-                        {
-                            var auto = d.Confidence >= facts.Threshold;
-                            <tr class="@(auto ? "is-auto" : "is-manual")"
-                                data-confidence="@d.Confidence.ToString("R", inv)" data-fault="@d.PredictedFault">
-                                <td class="muted">@d.Row</td>
-                                <td>@d.PredictedFault</td>
-                                <td class="num">@d.Confidence.ToString("0.00", inv)</td>
-                                <td class="triage-status">@(auto ? "Automatic" : "Manual review")</td>
-                                <td class="@(d.IsCorrect ? "muted" : "wrong")">@(d.IsCorrect ? "✓" : "✗") @d.TrueFault</td>
-                            </tr>
-                        }
-                        </tbody>
-                    </table>
-                </div>
-            </div>
-        </section>
+            }
+            <div class="threshold-line" aria-hidden="true"></div>
+        </div>
+        <label for="threshold" class="visually-hidden">Confidence threshold</label>
+        <input type="range" id="threshold" class="strip-slider" min="@grid.Min.ToString("0.00", inv)" max="@grid.Max.ToString("0.00", inv)"
+               step="@grid.Step.ToString("0.00", inv)" value="@thresholdText">
+        <div class="strip-axis" aria-hidden="true">
+            @for (var t = (int)Math.Ceiling(axisMin * 10 - 1e-9); t <= 10; t++)
+            {
+                <span style="left: @Pct(t / 10.0)%">@((t / 10.0).ToString("0.0", inv))</span>
+            }
+        </div>
     </div>
-}
+
+    <ul class="strip-legend">
+        <li><span class="dot is-manual"></span>Manual review: confidence below the threshold</li>
+        <li><span class="dot is-auto"></span>Classified automatically</li>
+        <li><span class="dot is-auto is-wrong"></span>Wrong prediction (known because this is test data)</li>
+    </ul>
+</section>
+
+<section class="panel summary-panel mb-4" aria-labelledby="summary-title">
+    <div class="summary-head">
+        <div>
+            <h2 id="summary-title" class="section-title">Batch summary</h2>
+            <p class="panel-note">Handover note written by a local LLM. It only phrases facts computed in C# – review order, close calls, weak fault types, threshold trade-off.</p>
+        </div>
+        <button type="button" id="summary-button" class="btn-steel" data-seed="@Model.Seed">Write summary</button>
+    </div>
+    <p id="summary-text" class="summary-text is-placeholder" aria-live="polite">Click “Write summary” for a short text for this batch at the current threshold.</p>
+    <dl id="summary-note" class="summary-note" hidden>
+        <div><dt>Review first</dt><dd data-field="reviewFirst"></dd></div>
+        <div><dt>Watch out</dt><dd data-field="watchOut"></dd></div>
+        <div><dt>Threshold trade-off</dt><dd data-field="thresholdTradeOff"></dd></div>
+    </dl>
+    <p id="summary-warning" class="summary-warning" hidden></p>
+</section>
+
+<div class="row g-4">
+    <section class="col-lg-5">
+        <div class="panel h-100">
+            <h2 class="section-title">Fault mix</h2>
+            <p class="panel-note">Predicted fault types in this batch, split by where they go.</p>
+            <div class="chart-container">
+                <canvas id="fault-mix-chart" role="img"
+                        aria-label="Bar chart of predicted fault types in this batch, split into manual review and automatic"></canvas>
+            </div>
+        </div>
+    </section>
+    <section class="col-lg-7">
+        <div class="panel h-100">
+            <h2 class="section-title">Defects, least confident first</h2>
+            <p class="panel-note">The true fault is known only because this demo batch comes from the test set.</p>
+            <div class="table-scroll">
+                <table class="defect-table">
+                    <thead>
+                    <tr>
+                        <th scope="col">Row</th>
+                        <th scope="col">Predicted fault</th>
+                        <th scope="col" class="num">Confidence</th>
+                        <th scope="col">Goes to</th>
+                        <th scope="col">True fault</th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    @foreach (var d in Model.Batch.OrderBy(d => d.Confidence))
+                    {
+                        var auto = d.IsAutoAt(facts.Threshold);
+                        <tr class="@(auto ? "is-auto" : "is-manual")"
+                            data-confidence="@d.Confidence.ToString("R", inv)" data-fault="@d.PredictedFault">
+                            <td class="muted">@d.Row</td>
+                            <td>@d.PredictedFault</td>
+                            <td class="num">@d.Confidence.ToString("0.00", inv)</td>
+                            <td class="triage-status">@(auto ? "Automatic" : "Manual review")</td>
+                            <td class="@(d.IsCorrect ? "muted" : "wrong")">@(d.IsCorrect ? "✓" : "✗") @d.TrueFault</td>
+                        </tr>
+                    }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </section>
+</div>
 
 @section Scripts {
-    @if (Model.Facts is { } data)
-    {
-        @* Data only (type=application/json is never executed); triage.js reads it with JSON.parse. *@
-        <script id="fault-mix-data" type="application/json">@Json.Serialize(data.FaultMix)</script>
-        <script id="threshold-stats-data" type="application/json">@Json.Serialize(Model.ThresholdStats)</script>
-        <script src="~/lib/chart.js/dist/chart.umd.min.js"></script>
-        <script src="~/js/triage.js" asp-append-version="true"></script>
-    }
+    @* Data only (type=application/json is never executed); triage.js reads it with JSON.parse. *@
+    <script id="fault-mix-data" type="application/json">@Json.Serialize(Model.Facts.FaultMix)</script>
+    <script id="error-rates-data" type="application/json">@Json.Serialize(Model.Grid.ErrorRates)</script>
+    <script src="~/lib/chart.js/dist/chart.umd.min.js"></script>
+    <script src="~/js/triage.js" asp-append-version="true"></script>
 }

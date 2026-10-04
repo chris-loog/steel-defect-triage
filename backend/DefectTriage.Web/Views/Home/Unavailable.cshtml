@@ -1,0 +1,15 @@
+@model string
+@{
+    ViewData["Title"] = "Batch unavailable";
+}
+
+@section HeaderActions {
+    <div class="header-actions">
+        <a class="btn-steel" asp-action="Index" asp-route-seed="">New batch</a>
+    </div>
+}
+
+<section class="panel panel-error" role="alert">
+    <h1 class="section-title">This batch can't be loaded</h1>
+    <p class="mb-0">@Model</p>
+</section>

@@ -18,35 +18,32 @@ public class HomeController(
 
         try
         {
-            // Both calls are independent -> start both, then await them together.
-            var batchTask = defectApi.GetBatchAsync(BatchSize, seed.Value, ct);
-            var statsTask = defectApi.GetThresholdStatsAsync(ct);
-            await Task.WhenAll(batchTask, statsTask);
-            return View(new TriagePageViewModel(seed.Value, batchTask.Result, statsTask.Result, null));
+            var (batch, grid) = await LoadBatchAsync(seed.Value, ct);
+            return View(new TriagePageViewModel(seed.Value, batch, grid));
         }
         catch (DefectApiUnavailableException ex)
         {
             logger.LogError(ex, "Defect API call failed");
-            return View(new TriagePageViewModel(seed.Value, null, null,
-                "The defect classifier service is not reachable right now. Start the Python API and reload the page."));
+            return View("Unavailable",
+                "The defect classifier service is not reachable right now. Start the Python API and reload the page.");
         }
     }
 
     // Called by the "Write summary" button: same batch (seed) + the slider's threshold -> facts -> LLM handover note.
     public async Task<IActionResult> Summary(int seed, double threshold, CancellationToken ct)
     {
-        // Only the slider's values (0.30-0.95, step 0.05) -> no arbitrary input reaches the LLM.
-        var percent = Math.Round(threshold * 100);
-        if (Math.Abs(threshold * 100 - percent) > 1e-6 || percent % 5 != 0 || percent is < 30 or > 95)
-            return BadRequest(new { error = "Threshold must be between 0.30 and 0.95 in steps of 0.05." });
-
         try
         {
-            var batchTask = defectApi.GetBatchAsync(BatchSize, seed, ct);
-            var statsTask = defectApi.GetThresholdStatsAsync(ct);
+            var loadTask = LoadBatchAsync(seed, ct);
             var modelTask = defectApi.GetModelInfoAsync(ct);
-            await Task.WhenAll(batchTask, statsTask, modelTask);
-            var facts = SummaryFacts.From(batchTask.Result, statsTask.Result, modelTask.Result.PerClassTest, percent / 100);
+            await Task.WhenAll(loadTask, modelTask);
+            var (batch, grid) = loadTask.Result;
+
+            // Only thresholds on the slider's grid -> no arbitrary input reaches the LLM.
+            if (grid.At(threshold) is not { } stat)
+                return BadRequest(new { error = "Threshold must be one of the slider's values." });
+
+            var facts = SummaryFacts.From(batch, grid, modelTask.Result.PerClassTest, stat.Threshold);
             return Json(await summaryService.SummarizeAsync(facts, ct));
         }
         catch (DefectApiUnavailableException ex)
@@ -59,6 +56,15 @@ public class HomeController(
             logger.LogError(ex, "LLM call failed");
             return StatusCode(503, new { error = "The summary model is not reachable right now. Try again later." });
         }
+    }
+
+    // Both calls are independent -> start both, then await them together.
+    private async Task<(IReadOnlyList<BatchDefect> Batch, ThresholdGrid Grid)> LoadBatchAsync(int seed, CancellationToken ct)
+    {
+        var batchTask = defectApi.GetBatchAsync(BatchSize, seed, ct);
+        var gridTask = defectApi.GetThresholdGridAsync(ct);
+        await Task.WhenAll(batchTask, gridTask);
+        return (batchTask.Result, gridTask.Result);
     }
 
     [ResponseCache(Duration = 0, Location = ResponseCacheLocation.None, NoStore = true)]

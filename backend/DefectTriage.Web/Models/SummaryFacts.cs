@@ -1,9 +1,10 @@
 namespace DefectTriage.Web.Models;
 
 // Everything the LLM handover note may talk about, computed once in C#.
-// Triage = the basics the page shows; the other lists are insights the page doesn't show.
+// ShownOnPage = the basics the page shows; the other lists are insights the page doesn't show.
+// Every number is already in the form the text should use, so serializing this record IS the LLM's input.
 public record SummaryFacts(
-    TriageFacts Triage,
+    ShownOnPage ShownOnPage,
     IReadOnlyList<ReviewItem> ReviewQueue,
     IReadOnlyList<ConfusionGroup> ConfusionGroups,
     IReadOnlyList<AutoReliability> AutoReliability,
@@ -11,27 +12,27 @@ public record SummaryFacts(
     IReadOnlyList<MixDeviation> MixDeviations)
 {
     private const int ReviewQueueCount = 10;
-    private const double ThresholdStep = 0.05;      // same step as the slider
     private const double MixDeviationPoints = 10;   // smaller differences are noise in a batch of 50
 
     public static SummaryFacts From(
-        IReadOnlyList<BatchDefect> batch, IReadOnlyList<ThresholdStat> thresholdStats,
+        IReadOnlyList<BatchDefect> batch, ThresholdGrid grid,
         IReadOnlyDictionary<string, ClassMetric> perClassTest, double threshold)
     {
-        var triage = TriageFacts.From(batch, thresholdStats, threshold);
+        var triage = TriageFacts.From(batch, grid, threshold);
 
         var manual = batch
-            .Where(d => d.Confidence < threshold)
+            .Where(d => !d.IsAutoAt(threshold))
             .OrderBy(d => d.Confidence)
             .Select(ToReviewItem)
             .ToList();
 
         return new SummaryFacts(
-            triage,
+            new ShownOnPage(triage.BatchSize, triage.Threshold, triage.AutoClassified, triage.ManualReview,
+                triage.ExpectedErrorRate is { } rate ? Percent(rate) : null),
             manual.Take(ReviewQueueCount).ToList(),
             ConfusionGroupsOf(manual),
             AutoReliabilityOf(batch, perClassTest, threshold),
-            TradeOffOf(batch, thresholdStats, triage),
+            TradeOffOf(batch, grid, triage),
             MixDeviationsOf(batch, perClassTest));
     }
 
@@ -54,7 +55,7 @@ public record SummaryFacts(
     private static List<AutoReliability> AutoReliabilityOf(
         IReadOnlyList<BatchDefect> batch, IReadOnlyDictionary<string, ClassMetric> perClassTest, double threshold) =>
         batch
-            .Where(d => d.Confidence >= threshold && perClassTest.ContainsKey(d.PredictedFault))
+            .Where(d => d.IsAutoAt(threshold))
             .GroupBy(d => d.PredictedFault)
             .Select(g => new AutoReliability(g.Key, g.Count(), Percent(perClassTest[g.Key].Precision)))
             .OrderBy(a => a.TestPrecisionPercent).ThenBy(a => a.Fault)
@@ -62,15 +63,14 @@ public record SummaryFacts(
 
     // One slider step down and up: review load in *this* batch, error rate from the test set, deltas precomputed.
     private static List<ThresholdOption> TradeOffOf(
-        IReadOnlyList<BatchDefect> batch, IReadOnlyList<ThresholdStat> thresholdStats, TriageFacts now)
+        IReadOnlyList<BatchDefect> batch, ThresholdGrid grid, TriageFacts now)
     {
         var options = new List<ThresholdOption>();
-        foreach (var (direction, t) in new[] { ("lower", now.Threshold - ThresholdStep), ("higher", now.Threshold + ThresholdStep) })
+        foreach (var (direction, stat) in new[] { ("lower", grid.Below(now.Threshold)), ("higher", grid.Above(now.Threshold)) })
         {
-            var stat = thresholdStats.FirstOrDefault(s => Math.Abs(s.Threshold - t) < 1e-6);
-            if (stat is null) continue; // no step below 0.30 / above 0.95
+            if (stat is null) continue; // no step below the lowest / above the highest threshold
 
-            var manualReview = batch.Count(d => d.Confidence < stat.Threshold);
+            var manualReview = batch.Count(d => !d.IsAutoAt(stat.Threshold));
             options.Add(new ThresholdOption(
                 direction,
                 Math.Round(stat.Threshold, 2),
@@ -107,6 +107,10 @@ public record SummaryFacts(
 
     private static double Percent(double fraction) => Math.Round(fraction * 100, 1);
 }
+
+// The batch totals the engineer already sees on screen; ExpectedErrorRatePercent from the test set.
+public record ShownOnPage(
+    int BatchSize, double ConfidenceThreshold, int AutoClassified, int ManualReview, double? ExpectedErrorRatePercent);
 
 public record ReviewItem(
     int Row, string PredictedFault, double Confidence, string RunnerUp, double RunnerUpProbability, double Margin);
