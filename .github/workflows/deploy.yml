@@ -1,0 +1,54 @@
+# Deploy: after CI passes on main, build both images, push them to Azure Container Registry and roll out
+# a new revision of both Azure Container Apps. Login via OIDC: GitHub gets a short-lived token, no Azure password.
+name: Deploy
+
+on:
+  workflow_run:
+    workflows: [CI]
+    types: [completed]
+    branches: [main]
+  workflow_dispatch: # manual "Run workflow" button (redeploys the current main)
+
+permissions:
+  id-token: write # needed to request the OIDC token for azure/login
+  contents: read
+
+concurrency: deploy # never run two deploys at the same time
+
+jobs:
+  deploy:
+    # Only deploy commits pushed to main whose CI run succeeded (not PR runs).
+    if: >-
+      github.event_name == 'workflow_dispatch' ||
+      (github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.event == 'push')
+    runs-on: ubuntu-latest
+    env:
+      ACR: ${{ vars.ACR_NAME }}.azurecr.io
+      RG: ${{ vars.AZURE_RG }}
+      TAG: ${{ github.event.workflow_run.head_sha || github.sha }} # image tag = commit SHA
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ env.TAG }} # exactly the commit CI tested
+
+      # IDs are repo variables (not secrets): useless without the federated credential in Azure.
+      - uses: azure/login@v3
+        with:
+          client-id: ${{ vars.AZURE_CLIENT_ID }}
+          tenant-id: ${{ vars.AZURE_TENANT_ID }}
+          subscription-id: ${{ vars.AZURE_SUBSCRIPTION_ID }}
+
+      - run: az acr login -n ${{ vars.ACR_NAME }}
+
+      - name: Build and push images
+        run: |
+          docker build -q -f classifier/Dockerfile -t $ACR/classifier-api:$TAG .
+          docker build -q -f backend/DefectTriage.Web/Dockerfile -t $ACR/web:$TAG .
+          docker push -q $ACR/classifier-api:$TAG
+          docker push -q $ACR/web:$TAG
+
+      - name: Roll out new revisions
+        run: |
+          az containerapp update -n classifier-api -g $RG --image $ACR/classifier-api:$TAG -o none
+          az containerapp update -n web -g $RG --image $ACR/web:$TAG -o none
+          echo "Live: https://$(az containerapp show -n web -g $RG --query properties.configuration.ingress.fqdn -o tsv)"
