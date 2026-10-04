@@ -14,14 +14,15 @@ public record BatchDefect(
     [property: JsonPropertyName("probabilities")] IReadOnlyDictionary<string, double> Probabilities)
 {
     [JsonIgnore] public bool IsCorrect => PredictedFault == TrueFault;
+
+    // The triage rule (same as Python's threshold_stats): confidence >= threshold -> classified automatically.
+    public bool IsAutoAt(double threshold) => Confidence >= threshold;
 }
 
 // What-if for one confidence threshold, computed on the whole held-out test set (389 defects).
+// Python also sends n_auto/auto_share/manual_share; the page counts those from the batch, so they are not mapped.
 public record ThresholdStat(
     [property: JsonPropertyName("threshold")] double Threshold,
-    [property: JsonPropertyName("n_auto")] int NAuto,
-    [property: JsonPropertyName("auto_share")] double AutoShare,
-    [property: JsonPropertyName("manual_share")] double ManualShare,
     [property: JsonPropertyName("error_rate")] double? ErrorRate); // null if nothing is auto-classified
 
 // Subset of GET /model-info (metrics.json written by train.py): per-class results on the held-out test set.

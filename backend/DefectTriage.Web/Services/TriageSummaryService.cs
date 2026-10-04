@@ -63,7 +63,7 @@ public class TriageSummaryService(ILlmClient llm)
     {
         var factsJson = BuildFactsJson(facts);
         // Conditional rules confuse small models (they echo "if null..."), so C# decides and adds the rule only when needed.
-        var prompt = facts.Triage.ExpectedErrorRate is null
+        var prompt = facts.ShownOnPage.ExpectedErrorRatePercent is null
             ? SystemPrompt + "\n- ExpectedErrorRatePercent is null: say that no error rate is available for this threshold."
             : SystemPrompt;
         var answer = await llm.CompleteAsync(prompt, factsJson, HandoverSchema, ct);
@@ -73,23 +73,8 @@ public class TriageSummaryService(ILlmClient llm)
         return new TriageSummary(note, NumberGuard.FindUnverified(allText, factsJson));
     }
 
-    // Numbers in exactly the form the text should use, so the LLM only has to copy them.
-    public static string BuildFactsJson(SummaryFacts facts) => JsonSerializer.Serialize(new
-    {
-        ShownOnPage = new
-        {
-            facts.Triage.BatchSize,
-            ConfidenceThreshold = facts.Triage.Threshold,
-            facts.Triage.AutoClassified,
-            facts.Triage.ManualReview,
-            ExpectedErrorRatePercent = facts.Triage.ExpectedErrorRate is { } rate ? Math.Round(rate * 100, 1) : (double?)null,
-        },
-        facts.ReviewQueue,
-        facts.ConfusionGroups,
-        facts.AutoReliability,
-        facts.ThresholdTradeOff,
-        facts.MixDeviations,
-    }, JsonOptions);
+    // SummaryFacts already holds every number in the form the text should use -> serialize as is.
+    public static string BuildFactsJson(SummaryFacts facts) => JsonSerializer.Serialize(facts, JsonOptions);
 
     // The schema should guarantee valid JSON; anything else counts as "LLM unavailable" (-> 503 in the controller).
     private static HandoverNote ParseNote(string answer)

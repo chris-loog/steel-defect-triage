@@ -11,14 +11,14 @@ public class SummaryFactsTests
         new(row, predicted, predicted, confidence,
             new Dictionary<string, double> { [predicted] = confidence, [runnerUp] = runnerUpProbability, ["Stains"] = 0.0 });
 
-    private static readonly ThresholdStat[] Stats =
+    private static readonly ThresholdGrid Stats = new(
     [
-        new(0.30, 389, 1.0, 0.0, 0.211),
-        new(0.35, 380, 0.977, 0.023, 0.2),
-        new(0.65, 280, 0.72, 0.28, 0.13),
-        new(0.70, 263, 0.676, 0.324, 0.1091),
-        new(0.75, 240, 0.617, 0.383, 0.081),
-    ];
+        new(0.30, 0.211),
+        new(0.35, 0.2),
+        new(0.65, 0.13),
+        new(0.70, 0.1091),
+        new(0.75, 0.081),
+    ]);
 
     // Usual predicted counts = recall * support / precision: Bumps 80, Pastry 20 -> 80 % / 20 %.
     private static readonly Dictionary<string, ClassMetric> PerClass = new()
@@ -92,5 +92,13 @@ public class SummaryFactsTests
         // Batch: 80 % / 20 % = usual mix -> nothing to report.
         var usual = Enumerable.Range(1, 4).Select(i => Defect(i, "Bumps", 0.9)).Append(Defect(5, "Pastry", 0.9)).ToList();
         Assert.Empty(SummaryFacts.From(usual, Stats, PerClass, 0.70).MixDeviations);
+    }
+
+    [Fact]
+    public void ShownOnPage_ErrorRateIsPercentReadyToCopy()
+    {
+        var facts = SummaryFacts.From([Defect(1, "Bumps", 0.9)], Stats, PerClass, 0.70);
+
+        Assert.Equal(new ShownOnPage(1, 0.70, 1, 0, 10.9), facts.ShownOnPage);
     }
 }

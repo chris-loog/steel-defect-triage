@@ -8,17 +8,13 @@ public record TriageFacts(
     double Threshold,
     int AutoClassified,
     int ManualReview,
-    double? ExpectedErrorRate,
-    IReadOnlyList<LowConfidenceDefect> LowestConfidence)
+    double? ExpectedErrorRate)
 {
     public const double DefaultThreshold = 0.70;
-    private const int LowestConfidenceCount = 5;
 
-    public static TriageFacts From(
-        IReadOnlyList<BatchDefect> batch, IReadOnlyList<ThresholdStat> thresholdStats, double threshold)
+    public static TriageFacts From(IReadOnlyList<BatchDefect> batch, ThresholdGrid grid, double threshold)
     {
-        // Same rule as Python's threshold_stats: confidence >= threshold -> auto-classified.
-        var auto = batch.Count(d => d.Confidence >= threshold);
+        var auto = batch.Count(d => d.IsAutoAt(threshold));
 
         var faultMix = batch
             .GroupBy(d => d.PredictedFault)
@@ -26,19 +22,8 @@ public record TriageFacts(
             .OrderByDescending(f => f.Count).ThenBy(f => f.Fault)
             .ToList();
 
-        // Thresholds are doubles (0.7 may be 0.7000000001) -> compare with a tolerance, not ==.
-        var stat = thresholdStats.FirstOrDefault(s => Math.Abs(s.Threshold - threshold) < 1e-6);
-
-        var lowest = batch
-            .OrderBy(d => d.Confidence)
-            .Take(LowestConfidenceCount)
-            .Select(d => new LowConfidenceDefect(d.Row, d.PredictedFault, Math.Round(d.Confidence, 2)))
-            .ToList();
-
-        return new TriageFacts(batch.Count, faultMix, threshold, auto, batch.Count - auto, stat?.ErrorRate, lowest);
+        return new TriageFacts(batch.Count, faultMix, threshold, auto, batch.Count - auto, grid.At(threshold)?.ErrorRate);
     }
 }
 
 public record FaultCount(string Fault, int Count, double Share);
-
-public record LowConfidenceDefect(int Row, string PredictedFault, double Confidence);

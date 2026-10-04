@@ -11,9 +11,9 @@ public class DefectApiClient(HttpClient http)
     public Task<IReadOnlyList<BatchDefect>> GetBatchAsync(int size, int seed, CancellationToken ct = default) =>
         GetAsync<IReadOnlyList<BatchDefect>>($"/batch?size={size}&seed={seed}", ct);
 
-    // GET /threshold-stats: auto-rate, review load and error rate per threshold (0.30 ... 0.95, test set).
-    public Task<IReadOnlyList<ThresholdStat>> GetThresholdStatsAsync(CancellationToken ct = default) =>
-        GetAsync<IReadOnlyList<ThresholdStat>>("/threshold-stats", ct);
+    // GET /threshold-stats: expected error rate per threshold (test set) = the slider's threshold grid.
+    public async Task<ThresholdGrid> GetThresholdGridAsync(CancellationToken ct = default) =>
+        new(await GetAsync<IReadOnlyList<ThresholdStat>>("/threshold-stats", ct));
 
     // Training metrics (metrics.json); only the per-class test results are mapped.
     public Task<ModelInfo> GetModelInfoAsync(CancellationToken ct = default) =>
