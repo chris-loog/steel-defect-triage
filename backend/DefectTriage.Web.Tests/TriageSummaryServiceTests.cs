@@ -1,8 +1,8 @@
 using System.Text.Json;
-using ForecastCopilot.Api.Models;
-using ForecastCopilot.Api.Services;
+using DefectTriage.Web.Models;
+using DefectTriage.Web.Services;
 
-namespace ForecastCopilot.Api.Tests;
+namespace DefectTriage.Web.Tests;
 
 // No real LLM in tests: a fake ILlmClient records the request and returns a fixed answer.
 public class TriageSummaryServiceTests

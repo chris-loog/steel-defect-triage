@@ -20,7 +20,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\ForecastCopilot.Api\ForecastCopilot.Api.csproj" />
+    <ProjectReference Include="..\DefectTriage.Web\DefectTriage.Web.csproj" />
   </ItemGroup>
 
 </Project>

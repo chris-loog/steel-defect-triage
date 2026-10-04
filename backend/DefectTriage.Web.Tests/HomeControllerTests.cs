@@ -1,13 +1,13 @@
 using System.Net;
 using System.Net.Http.Json;
 using System.Text.Json;
-using ForecastCopilot.Api.Models;
-using ForecastCopilot.Api.Services;
+using DefectTriage.Web.Models;
+using DefectTriage.Web.Services;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.AspNetCore.TestHost;
 using Microsoft.Extensions.DependencyInjection;
 
-namespace ForecastCopilot.Api.Tests;
+namespace DefectTriage.Web.Tests;
 
 // Integration tests: the whole app (routing, DI, controller, Razor view) runs in memory via WebApplicationFactory.
 // The Python API and the LLM are replaced by fakes -> no network, no Ollama.

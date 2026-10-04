@@ -1,4 +1,4 @@
-namespace ForecastCopilot.Api.Models;
+namespace DefectTriage.Web.Models;
 
 // All numbers the UI and the LLM talk about, computed once in C#.
 // Batch numbers describe this batch; ExpectedErrorRate comes from the held-out test set (389 defects).

@@ -1,9 +1,9 @@
 using System.Text.Json;
-using ForecastCopilot.Api.Models;
+using DefectTriage.Web.Models;
 
-namespace ForecastCopilot.Api.Services;
+namespace DefectTriage.Web.Services;
 
-// Typed HttpClient for the Python defect classifier service (forecasting/app.py).
+// Typed HttpClient for the Python defect classifier service (classifier/app.py).
 // BaseAddress and Timeout are configured in Program.cs via AddHttpClient<DefectApiClient>.
 public class DefectApiClient(HttpClient http)
 {

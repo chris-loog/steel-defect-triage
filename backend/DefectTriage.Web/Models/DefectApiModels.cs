@@ -1,8 +1,8 @@
 using System.Text.Json.Serialization;
 
-namespace ForecastCopilot.Api.Models;
+namespace DefectTriage.Web.Models;
 
-// Mirror the Pydantic models in forecasting/app.py (BatchDefect, ThresholdStat).
+// Mirror the Pydantic models in classifier/app.py (BatchDefect, ThresholdStat).
 // [JsonPropertyName] maps Python snake_case to C# PascalCase in both directions.
 
 // One held-out test defect, classified by the model. TrueFault is known only because it comes from the test set.

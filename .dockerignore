@@ -9,6 +9,6 @@
 **/.venv
 **/__pycache__
 **/.ipynb_checkpoints
-forecasting/notebooks
-forecasting/model/*.joblib
+classifier/notebooks
+classifier/model/*.joblib
 docs

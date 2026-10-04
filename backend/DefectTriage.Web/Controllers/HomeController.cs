@@ -1,9 +1,9 @@
 using System.Diagnostics;
 using Microsoft.AspNetCore.Mvc;
-using ForecastCopilot.Api.Models;
-using ForecastCopilot.Api.Services;
+using DefectTriage.Web.Models;
+using DefectTriage.Web.Services;
 
-namespace ForecastCopilot.Api.Controllers;
+namespace DefectTriage.Web.Controllers;
 
 public class HomeController(
     DefectApiClient defectApi, TriageSummaryService summaryService, ILogger<HomeController> logger) : Controller

@@ -1,6 +1,6 @@
 using System.Text.Json;
 
-namespace ForecastCopilot.Api.Services;
+namespace DefectTriage.Web.Services;
 
 // Small provider-agnostic LLM interface. Default implementation: OllamaLlmClient (local).
 public interface ILlmClient

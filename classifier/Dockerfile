@@ -1,15 +1,15 @@
-# Forecast API image. Build context = repo root (needs data/): docker build -f forecasting/Dockerfile .
+# Classifier API image. Build context = repo root (needs data/): docker build -f classifier/Dockerfile .
 FROM python:3.14-slim
 
-WORKDIR /app/forecasting
+WORKDIR /app/classifier
 
 # Dependencies first: this layer is cached until requirements.txt changes.
-COPY forecasting/requirements.txt .
+COPY classifier/requirements.txt .
 RUN pip install --no-cache-dir -q -r requirements.txt
 
 # Same layout as the repo, so ROOT.parent / "data" in train.py/app.py still works.
 COPY data/ /app/data/
-COPY forecasting/ /app/forecasting/
+COPY classifier/ /app/classifier/
 
 # Train at build time: model.joblib is gitignored, so the image creates its own.
 RUN python train.py

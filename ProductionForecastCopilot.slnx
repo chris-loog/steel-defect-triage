@@ -1,6 +1,0 @@
-<Solution>
-  <Folder Name="/backend/">
-    <Project Path="backend/ForecastCopilot.Api.Tests/ForecastCopilot.Api.Tests.csproj" />
-    <Project Path="backend/ForecastCopilot.Api/ForecastCopilot.Api.csproj" />
-  </Folder>
-</Solution>
